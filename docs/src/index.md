@@ -69,7 +69,33 @@ licenses:
 
 ## Getting Started: Installation and First Steps
 
-The download for Pumas will be reinstated soon.
+Pumas is distributed via JuliaPro from Julia Computing Inc. Please
+[install the current stable release of JuliaPro](https://juliacomputing.com/products/juliapro.html).
+
+To add the `Pumas` package, use the following commands inside the JuliaPro REPL:
+
+```julia
+using Pkg
+Pkg.add("Pumas")
+```
+
+To verify that the package has been correctly installed, you can run the command
+`Pkg.test("Pumas")` which will run an internal verification suite to ensure
+accuracy. When installed, use the command:
+
+```julia
+using Pumas
+```
+
+to bring the functionality of Pumas into your REPL. Once done, you are ready
+to start using Pumas!
+
+To start understanding the package in more detail, please checkout the tutorials
+at the start of this manual. **We highly suggest that all new users start with
+the Introduction to Pumas tutorial!** If you find any example where there seems
+to be an error, please open an issue.
+
+For the most up to date information on using the package, please join the Slack channel.
 
 ### Jupyter Notebook Tutorials
 
