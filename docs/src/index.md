@@ -27,7 +27,7 @@ user experience.
 Pumas is covered by the [Julia Computing EULA](). Among other things, by using
 Pumas you are agreeing to one of the four available licenses:
 
-(a) FREE LICENSE: If you obtained the Software pursuant to a free download or
+1. FREE LICENSE: If you obtained the Software pursuant to a free download or
     are using the Software pursuant to free online usage, you may use the
     Software as per terms and conditions specified in clause 1. above; provided,
     however, that in all events, Pumas.jl may be used only for Non-Commercial
@@ -37,7 +37,7 @@ Pumas you are agreeing to one of the four available licenses:
     profit scholarly purposes, where " non-commercial" means not involving the
     use of the Software to perform services for a fee or for the production or
     manufacture of software programs for sale or distribution to third parties.
-(b) EVALUATION LICENSE: If You obtained the Software pursuant to an evaluation
+2. EVALUATION LICENSE: If You obtained the Software pursuant to an evaluation
     license, you may use the Software only for internal evaluation purposes and
     only for the term of the evaluation period, as specified on Julia Computing
     download website or in the documentation related to the distribution.
@@ -49,7 +49,7 @@ Pumas you are agreeing to one of the four available licenses:
     the Software on a reasonable number of computers to conduct your evaluation
     provided that you are the only individual using the Software and only one
     copy of the Software is in use at any one time.
-(c) EDU LICENSE. If You obtained the Software pursuant to an EDU license, you
+3. EDU LICENSE. If You obtained the Software pursuant to an EDU license, you
     may use the Software only for educational and teaching purposes, as
     specified on Julia Computing download website or in the documentation
     related to the distribution. NOTWITHSTANDING ANYTHING TO THE CONTRARY
@@ -57,7 +57,7 @@ Pumas you are agreeing to one of the four available licenses:
     PURPOSES, YOU MAY NOT DISTRIBUTE ANY PORTION OF THE SOFTWARE, AND THE
     APPLICATION AND/OR PRODUCT DEVELOPED BY YOU MAY ONLY BE USED FOR EDUCATIONAL
     PURPOSES.
-(d) COMMERCIAL LICENSE WITH SUPPORT: If you obtained the Software pursuant to a
+4. COMMERCIAL LICENSE WITH SUPPORT: If you obtained the Software pursuant to a
     separate Julia Computing License Agreement that includes a commercial
     license and support services, you may use the Software as per terms and
     conditions specified in the applicable Julia Computing License Agreement
@@ -68,33 +68,7 @@ Pumas you are agreeing to one of the four available licenses:
 
 ## Getting Started: Installation and First Steps
 
-Pumas is distributed via JuliaPro from Julia Computing Inc. Please
-[install the current stable release of JuliaPro](https://juliacomputing.com/products/juliapro.html).
-
-To add the `Pumas` package, use the following commands inside the JuliaPro REPL:
-
-```julia
-using Pkg
-Pkg.add("Pumas")
-```
-
-To verify that the package has been correctly installed, you can run the command
-`Pkg.test("Pumas")` which will run an internal verification suite to ensure
-accuracy. When installed, use the command:
-
-```julia
-using Pumas
-```
-
-to bring the functionality of Pumas into your REPL. Once done, you are ready
-to start using Pumas!
-
-To start understanding the package in more detail, please checkout the tutorials
-at the start of this manual. **We highly suggest that all new users start with
-the Introduction to Pumas tutorial!** If you find any example where there seems
-to be an error, please open an issue.
-
-For the most up to date information on using the package, please join the Slack channel.
+The download for Pumas will be reinstated soon.
 
 ### Jupyter Notebook Tutorials
 
