@@ -106,7 +106,7 @@ commands:
 
 ```julia
 using Pkg
-pkg"add https://github.com/UMCTM/PumasTutorials.jl"
+pkg"add https://github.com/PumasAI/PumasTutorials.jl"
 using PumasTutorials
 PumasTutorials.open_notebooks()
 ```
