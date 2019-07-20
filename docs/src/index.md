@@ -25,7 +25,7 @@ user experience.
 ## License
 
 Pumas is covered by the [Julia Computing EULA](https://juliacomputing.com/eula).
-Among other things, by using Pumas you are agreeing to one of the four available
+Among other terms, by using Pumas you are agreeing to one of the four available
 licenses:
 
 1. FREE LICENSE: If you obtained the Software pursuant to a free download or
