@@ -1,7 +1,10 @@
 using Documenter#=, Pumas=#
 
+# using Pumas, CSV, DataFrames, StatsBase, Bioequivalence
+
 makedocs(
   modules=Module[#=Pumas=#],
+  # modules = [CSV, DataFrames, StatsBase, Bioequivalence],
   doctest=false,
   clean=true,
   format =Documenter.HTML(),
@@ -28,6 +31,9 @@ makedocs(
     ],
     "Diagnostics" => Any[
       "analysis/diagnostics.md",
+    ],
+    "Bioequivalence" => Any[
+      "bioequivalence/designs.md"
     ],
   ]
   )
