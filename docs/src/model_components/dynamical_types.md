@@ -81,3 +81,16 @@ to be an `ODEProblem` defining an ODE. In the function-based interface, any
 The problem type that is given can use sentinel values for the initial condition,
 timespan, and parameters which will be overridden by Pumas during the simulation
 chain.
+
+## Defining New Analytical Problems
+
+One can define a new problem type via an analytical solution by doing the following:
+
+- Define a problem struct that is a subtype of `ExplicitModel`
+- Define a call overload on the struct that is `t,t0,C0,dose,p,rate`. This calculates
+  the following: given a current concentration vector `C0` at time `t0` with a dose
+  `dose` at `t0`, return the concentration at time `t` given a rate dose of `rate`.
+  A rate dose is interpreted as an affine (additive) term to the ODE, with a vector
+  length matching the ODE.
+- Overload `varnames(Type{MyProblem})` with a vector of variable names
+- Overload `pk_init(::MyProblem)` with the initial condition vector.
