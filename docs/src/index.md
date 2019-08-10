@@ -11,6 +11,7 @@ in alpha**, the package currently includes:
 - Deep control over the differential equation solvers for high efficiency
 - Estimation of NLME parameters via Maximum Likelihood and Bayesian methods
 - Integrated Noncompartmental Analysis (NCA)
+- Mixed analytical PK with numerical PD
 - Interfacing with global optimizers for more accurate parameter estimates
 - Simulation and estimation diagnostics
 - Bioequivalence analysis
