@@ -1,6 +1,6 @@
 # Bioequivalence
 
-Bioequivalence.jl is a package for performing bioequivalence analysis part of the PumasAI ecosystem for pharmaceutical science (e.g. Pumas.jl: the simulation engine for PKPD, PBPK, QSP, and other models).
+Bioequivalence.jl is a package for performing bioequivalence analysis part of the PumasAI ecosystem for pharmaceutical science (e.g. Pumas.jl).
 
 The documentation provides a how-to and technical details for performing bioequivalence analysis using various designs.
 
