@@ -174,9 +174,9 @@ Ka = t -> t*θ[1]
 
 ```julia
 @pre begin
-    Ka     = θ[1]
-    CL      = θ[2]*exp(η[1])
-    Vc      = t -> t*θ[3]*exp(η[2])
+    Ka = θ[1]
+    CL = θ[2]*exp(η[1])
+    Vc = t -> t*θ[3]*exp(η[2])
 end
 ```
 
