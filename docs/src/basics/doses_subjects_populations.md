@@ -147,9 +147,9 @@ Special notes:
 ### PumasNDF Parsing
 
 ```julia
-read_Pumas(data;vs=Symbol[],dvs=Symbol[:dv]
-                        id=:id, time=:time, evid=:evid, amt=:amt, addl=:addl,
-                        ii=:ii, cmt=:cmt, rate=:rate, ss=:ss)
+read_pumas(data; cvs=Symbol[],dvs=Symbol[:dv],
+                 id=:id, time=:time, evid=:evid, amt=:amt, addl=:addl,
+                 ii=:ii, cmt=:cmt, rate=:rate, ss=:ss)
 ```
 
 The arguments are as follows:
@@ -159,10 +159,8 @@ The arguments are as follows:
   tabular data structure is given, such as a
   [DataFrame](http://juliadata.github.io/DataFrames.jl/stable/), then that
   structure will be used as the data source.
-- `cvs` is the list of symbols for the header names of the covariate columns.
-- `dvs` is the list of symbols for the header names of the observation data columns.
 
-The other arguments are optional and allow changing the column names from their
+The other arguments are optional (keyword arguments) and allow changing the column names from their
 default.
 
 ### NMTRAN Parsing
