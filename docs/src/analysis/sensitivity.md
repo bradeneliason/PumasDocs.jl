@@ -38,6 +38,9 @@ The arguments are:
 -  `vars`: a list of the derived variables to run GSA on.
 -  `p_range_low` & `p_range_high`: the lower and upper bounds for the parameters.
 
+For method specific arguments that are passed with the method constructor you can refer to the 
+[DiffEqSensitivity.jl](https://docs.sciml.ai/dev/analysis/global_sensitivity/#gsa-1) documentation.
+
 The `gsa` provided in Pumas assumes that you want to run GSA on all of the parameters of the model and
 also constraints you to run GSA only on variable in the `@derived` block. For more control on the input
 and output you can create a custom function and use the `gsa` function from DiffEqSensitivity.jl which is 
