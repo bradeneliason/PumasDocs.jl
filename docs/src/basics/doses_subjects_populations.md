@@ -162,14 +162,3 @@ The arguments are as follows:
 
 The other arguments are optional (keyword arguments) and allow changing the column names from their
 default.
-
-### NMTRAN Parsing
-
-Additionally, there exist a parsing function `process_nmtran` for parsing
-general NONMEM files. This function is a work-in-progress.
-
-```julia
-process_nmtran(data,cvs=Symbol[],dvs=Symbol[:dv];
-                        id=:id, time=:time, evid=:evid, amt=:amt, addl=:addl,
-                        ii=:ii, cmt=:cmt, rate=:rate, ss=:ss)
-```
