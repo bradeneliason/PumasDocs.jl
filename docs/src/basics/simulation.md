@@ -28,7 +28,7 @@ Additionally, the following keyword arguments can be used:
   of the 5th order Rosenbrock method for ODEs described in the
   [DifferentialEquations.jl solver documentation page](http://docs.juliadiffeq.org/latest/solvers/ode_solve.html#Rosenbrock-Methods-1). Defaults to an automatic stiffness
   detection algorithm for ODEs.
-- `ensemblealg`: is parallelism algorithm to use internally for simulating a `Population`. The options are [derived from DifferentialEquations.jl](https://docs.sciml.ai/latest/features/ensemble/#EnsembleAlgorithms-1). The default is `EnsembleThreads()`.
+- `ensemblealg`: the parallel algorithm to use internally for simulating a `Population`. The options are [derived from DifferentialEquations.jl](https://docs.sciml.ai/latest/features/ensemble/#EnsembleAlgorithms-1). The default is `EnsembleThreads()`.
 - Any keyword argument in the DifferentialEquations.jl common solver arguments.
   These are documented on the [DifferentialEquations.jl common solver options page](http://docs.juliadiffeq.org/latest/basics/common_solver_opts.html).
 
