@@ -55,7 +55,7 @@ at the start of this manual. **We highly suggest that all new users start with
 the Introduction to Pumas tutorial!** If you find any example where there seems
 to be an error, please open an issue.
 
-For the most up to date information on using the package, please join the Slack channel.
+For the most up to date information on using the package, please join the #pumas channel on the [JuliaLang Slack](https://julialang.slack.com/).
 
 ### Jupyter Notebook Tutorials
 
