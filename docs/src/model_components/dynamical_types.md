@@ -98,13 +98,13 @@ The `Central1Periph1Meta1` model corresponds to the following `@dynamics` block:
 
 ```julia
 @dynamics begin
-  Central'     = -(CL+Q+T)/Vc*Central + Q/Vp*CPeripheral
-  CPeripheral' =          Q/Vc*Central - Q/Vp*CPeripheral
-  Metabolite'  = -CLm/Vm*Metabolite + T/Vc*Central
+  Central'     = -(CL+Q+CLfm)/Vc*Central + Q/Vp*CPeripheral
+  CPeripheral' =            Q/Vc*Central - Q/Vp*CPeripheral
+  Metabolite'  = -CLm/Vm*Metabolite + CLfm/Vc*Central
 end
 ```
 
-The variables `CL`, `CLm`, `Vc`, `Vp`, `Vm`, `Q`, and `T` are required to be defined in the `@pre` block.
+The variables `CL`, `CLm`, `Vc`, `Vp`, `Vm`, `Q`, and `CLfm` are required to be defined in the `@pre` block.
 
 ### Central1Periph1Meta1Periph1
 
@@ -112,14 +112,14 @@ The `Central1Periph1Meta1Periph1` model corresponds to the following `@dynamics`
 
 ```julia
 @dynamics begin
-  Central'     = -(CL+Q+T)/Vc*Central + Q/Vp*CPeripheral
-  CPeripheral' =          Q/Vc*Central - Q/Vp*CPeripheral
-  Metabolite'  = -(CLm+Qm)/Vm*Metabolite + Qm/Vmp*MPeripheral + T/Vc*Central
+  Central'     = -(CL+Q+CLfm)/Vc*Central + Q/Vp*CPeripheral
+  CPeripheral' =            Q/Vc*Central - Q/Vp*CPeripheral
+  Metabolite'  = -(CLm+Qm)/Vm*Metabolite + Qm/Vmp*MPeripheral + CLfm/Vc*Central
   MPeripheral' =        Qm/Vm*Metabolite - Qm/Vmp*MPeripheral
 end
 ```
 
-The variables `CL`, `CLm`, `Vc`, `Vp`, `Vmp`, `Q`, `Qm`, and `T` are required to be defined in the `@pre` block.
+The variables `CL`, `CLm`, `Vc`, `Vp`, `Vmp`, `Q`, `Qm`, and `CLfm` are required to be defined in the `@pre` block.
 
 ## `DEProblem`
 
