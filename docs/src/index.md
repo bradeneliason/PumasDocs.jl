@@ -55,7 +55,7 @@ at the start of this manual. **We highly suggest that all new users start with
 the Introduction to Pumas tutorial!** If you find any example where there seems
 to be an error, please open an issue.
 
-For the most up to date information on using the package, please join the #pumas channel on the [JuliaLang Slack](https://julialang.slack.com/).
+If you have questions about usage, please join the official [Pumas Discourse](https://discourse.pumas.ai/) and take part in the discussion there. There is also a #pumas channel on the [JuliaLang Slack](https://julialang.slack.com/) for more informal discussions around Pumas.jl usage.
 
 ### Jupyter Notebook Tutorials
 
