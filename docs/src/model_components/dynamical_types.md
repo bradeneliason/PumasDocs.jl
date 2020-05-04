@@ -21,45 +21,105 @@ simulation and estimation. In the `@model` DSL, an analytical solution
 is declared by name. For example:
 
 ```julia
-@dynamics ImmediateAbsorptionModel
+@dynamics Central1
 ```
 
-declares the use of the `ImmediateAbsorptionModel`. Analytical solutions
+declares the use of the `Central1`. Analytical solutions
 have preset names which are used in the internal model. These parameters
 must be given values in the `pre` block.
 
-### ImmediateAbsorptionModel
+### Central1
 
-The `ImmediateAbsorptionModel` corresponds to the ODE:
+The `Central1` model corresponds to the following `@dynamics` block:
 
-```math
-\begin{align}
-Central' &= -(CL/V)*Central\\
-\end{align}
+```julia
+@dynamics begin
+  Central' = -(CL/Vc)*Central
+end
 ```
 
-### OneCompartmentModel
+The variables `CL` and `Vc` are required to be defined in the `@pre` block.
 
-The `OneCompartmentModel` corresponds to the ODE:
+### Depots1Central1
 
-```math
-\begin{align}
-Depot'   &= -Ka*Depot\\
-Central' &=  Ka*Depot - (CL/V)*Central
-\end{align}
+The `Depots1Central1` model corresponds to the following `@dynamics` block:
+
+```julia
+@dynamics begin
+  Depot'   = -Ka*Depot
+  Central' =  Ka*Depot - (CL/Vc)*Central
+end
 ```
 
-### OneCompartmentParallelModel
+The variables `Ka`, `CL` and `Vc` are required to be defined in the `@pre` block.
 
-The `OneCompartmentParallelModel` corresponds to the ODE:
+### Depots2Central1
 
-```math
-\begin{align}
-Depot1'   &= -Ka1*Depot1\\
-Depot2'   &= -Ka2*Depot2\\
-Central'  &=  Ka1*Depot1 + Ka2*Depot2 - (CL/V)*Central
-\end{align}
+The `Depots2Central1` model corresponds to the following `@dynamics` block:
+
+```julia
+@dynamics begin
+  Depot1'   = -Ka1*Depot1
+  Depot2'   = -Ka2*Depot2
+  Central'  =  Ka1*Depot1 + Ka2*Depot2 - (CL/Vc)*Central
+end
 ```
+### Central1Periph1
+
+The `Central1Periph1` model corresponds to the following `@dynamics` block:
+
+```julia
+@dynamics begin
+  Central'    = -(CL+Q)/Vc*Central + Q/Vp*Peripheral
+  Peripheral' =        Q/Vc*Central - Q/Vp*Peripheral
+end
+```
+
+The variables `CL`, `Vc`, `Q`, and `Vp` are required to be defined in the `@pre` block.
+
+### Depots1Central1Periph1
+
+The `Depots1Central1Periph1` model corresponds to the following `@dynamics` block:
+
+```julia
+@dynamics begin
+  Depot'      = -Ka*Depot
+  Central'    =  Ka*Depot -(CL+Q)/Vc*Central + Q/Vp*Peripheral
+  Peripheral' =                  Q/Vc*Central - Q/Vp*Peripheral
+end
+```
+
+The variables `Ka`, `CL`, `Vc`, `Q`, and `Vp` are required to be defined in the `@pre` block.
+
+### Central1Periph1Meta1
+"""
+
+The `Central1Periph1Meta1` model corresponds to the following `@dynamics` block:
+
+```julia
+@dynamics begin
+  Central'     = -(CL+Q+CLfm)/Vc*Central + Q/Vp*CPeripheral
+  CPeripheral' =            Q/Vc*Central - Q/Vp*CPeripheral
+  Metabolite'  = -CLm/Vm*Metabolite + CLfm/Vc*Central
+end
+```
+
+The variables `CL`, `CLm`, `Vc`, `Vp`, `Vm`, `Q`, and `CLfm` are required to be defined in the `@pre` block.
+
+### Central1Periph1Meta1Periph1
+
+The `Central1Periph1Meta1Periph1` model corresponds to the following `@dynamics` block:
+
+```julia
+@dynamics begin
+  Central'     = -(CL+Q+CLfm)/Vc*Central + Q/Vp*CPeripheral
+  CPeripheral' =            Q/Vc*Central - Q/Vp*CPeripheral
+  Metabolite'  = -(CLm+Qm)/Vm*Metabolite + Qm/Vmp*MPeripheral + CLfm/Vc*Central
+  MPeripheral' =        Qm/Vm*Metabolite - Qm/Vmp*MPeripheral
+end
+```
+
+The variables `CL`, `CLm`, `Vc`, `Vp`, `Vmp`, `Q`, `Qm`, and `CLfm` are required to be defined in the `@pre` block.
 
 ## `DEProblem`
 
