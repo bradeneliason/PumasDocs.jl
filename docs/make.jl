@@ -1,10 +1,10 @@
-using Documenter#=, Pumas=#
+using Documenter, Bioequivalence#=, Pumas=#
 
 makedocs(
-  modules=Module[#=Pumas=#],
+  # modules=Module[#=Pumas=#],
+  modules = [Bioequivalence],
   doctest=false,
   clean=true,
-  format =Documenter.HTML(),
   sitename="Pumas",
   authors="Chris Rackauckas, Yingbo Ma, Joga Gobburu, Vijay Ivaturi",
   pages = Any[
@@ -29,9 +29,11 @@ makedocs(
     "Diagnostics" => Any[
       "analysis/diagnostics.md",
     ],
+    "Bioequivalence" => Any[
+      "bioequivalence/introduction.md",
+      "bioequivalence/api.md",
+    ],
   ]
   )
 
-deploydocs(
-   repo = "github.com/PumasAI/PumasDocs.jl.git",
-)
+deploydocs(repo = "github.com/PumasAI/PumasDocs.jl.git")
