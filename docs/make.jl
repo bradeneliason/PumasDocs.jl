@@ -1,7 +1,7 @@
-using Documenter#=, Pumas=#
+using Documenter, Pumas
 
 makedocs(
-  modules=Module[#=Pumas=#],
+  modules=Module[Pumas],
   doctest=false,
   clean=true,
   format =Documenter.HTML(),
