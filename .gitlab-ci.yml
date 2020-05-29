@@ -1,15 +1,14 @@
 image: "juliacomputing/juliapro:v1.4.1-3"
 
 variables:
-  # JULIA_DEPOT_PATH: "$CI_PROJECT_DIR/.julia/"
   JULIA_PKG_SERVER: juliateam.pumas.ai
   PRIVATE_REGISTRY_NAME: PumasRegistry
   PRIVATE_REGISTRY_UUID: 2207cf11-c0bb-4826-96c6-61cddfb0e7e8
   REMOVE_JULIAPRO: "true"
 
-# cache:
-#   paths:
-#     - .julia/
+cache:
+  paths:
+    - $HOME/.julia/
 
 build:
   stage: build
@@ -31,12 +30,6 @@ deploy:
                 versioninfo()'
     - julia --color=yes --project=docs/ -e 'using Pkg; Pkg.instantiate()'
     - julia --color=yes --project=docs/ docs/make.jl
-    # - julia --depwarn=error --project -e 'using Pkg;
-    #                       Pkg.test("Pumas"; coverage=true);'
-    # - julia -e 'using Pkg;
-    #             Pkg.add("Coverage");
-    #             using Coverage;
-    #             Codecov.submit_local(process_folder())'
   only:
   - master
   - tags
