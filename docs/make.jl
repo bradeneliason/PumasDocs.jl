@@ -19,6 +19,7 @@ makedocs(
       "basics/simulation.md",
       "basics/estimation.md",
       "basics/nca.md",
+      "basics/bioequivalence.md",
       "basics/faq.md",
     ],
     "Model Components" => Any[
@@ -28,10 +29,6 @@ makedocs(
     ],
     "Diagnostics" => Any[
       "analysis/diagnostics.md",
-    ],
-    "Bioequivalence" => Any[
-      "bioequivalence/introduction.md",
-      "bioequivalence/api.md",
     ],
   ]
   )
