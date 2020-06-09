@@ -1,8 +1,8 @@
-using Documenter, Bioequivalence#=, Pumas=#
+using Documenter, Pumas, Bioequivalence
 
 makedocs(
   # modules=Module[#=Pumas=#],
-  modules = [Bioequivalence],
+  modules = [Pumas, Bioequivalence],
   doctest=false,
   clean=true,
   sitename="Pumas",
