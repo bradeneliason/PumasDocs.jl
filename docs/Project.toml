@@ -2,3 +2,8 @@
 Bioequivalence = "4ece37e6-a012-11e8-38cd-91247efc2c34"
 Documenter = "e30172f5-a6a5-5a46-863b-614d45cd2de4"
 Pumas = "4f2c3c20-a4ac-11e9-067b-e5872d3484cf"
+
+[compat]
+Bioequivalence = "0.1.6"
+Documenter = "0.24"
+Pumas = "0.13"
