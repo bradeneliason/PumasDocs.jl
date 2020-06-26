@@ -1,7 +1,7 @@
 image: "juliacomputing/juliapro:v1.4.1-3"
 
 variables:
-  JULIA_PKG_SERVER: juliateam.pumas.ai
+  JULIA_PKG_SERVER: pumas.juliateam.io
   PRIVATE_REGISTRY_NAME: PumasRegistry
   PRIVATE_REGISTRY_UUID: 2207cf11-c0bb-4826-96c6-61cddfb0e7e8
   REMOVE_JULIAPRO: "true"
