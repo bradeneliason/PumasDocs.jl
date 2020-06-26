@@ -18,11 +18,6 @@ build:
     - julia --project -e 'using Pkg;
                           Pkg.add(["Pumas", "Bioequivalence"]);
                           '
-  only:
-  - master
-  - tags
-  - external
-  - pushes
 
 deploy:
   stage: deploy
