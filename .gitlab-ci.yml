@@ -16,7 +16,8 @@ build:
     - julia -e 'using InteractiveUtils;
                 versioninfo()'
     - julia --project -e 'using Pkg;
-                          Pkg.add("Pumas")'
+                          Pkg.add(["Pumas", "Bioequivalence"]);
+                          '
   only:
   - master
   - tags
