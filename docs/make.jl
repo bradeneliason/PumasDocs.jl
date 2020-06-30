@@ -1,4 +1,5 @@
 using Documenter#=, Pumas=#
+using Bioequivalence
 
 makedocs(
   modules=Module[#=Pumas=#Bioequivalence],
