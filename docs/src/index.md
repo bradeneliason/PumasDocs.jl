@@ -108,6 +108,7 @@ Pages = [
     "basics/simulation.md",
     "basics/estimation.md",
     "basics/nca.md",
+    "basics/be.md",
     "basics/faq.md",
 ]
 ```
