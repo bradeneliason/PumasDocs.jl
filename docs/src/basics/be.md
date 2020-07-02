@@ -27,9 +27,56 @@ using Bioequivalence
 
 A bioequivalence study is an instance of the type `BioequivalenceStudy` and can be constructed through the `pumas_be` function.
 
+## What is bioequivalence?
+
+Bioequivalence is a concept in pharmacokinetics that captures the idea that various pharmaceutical products administrated in a similar manner (e.g., same molar dose of the same active ingredient, route of administration) can be expected to have, for all intents and purposes, the same effect on individuals in a defined population.
+
+Clinical studies collect data which can be analyzed such as through noncompartmental analysis to obtain insightful descriptives about the contentration curve also known as pharmacokinetic endpoints. These endpoints relate to the rate (e.g., maximum concentration, time of peak concentration) and extent of absorption (e.g., area under the curve). Bioequivalence relies on the study design and pharmacokinetic endpoints from clinical trials or simulation models to make a determination about the expected effects of formulations.
+
+Three major types of bioequivalence are regularly used:
+
+1. Average (ABE): are the mean values of the distributions of the pharmacokinetic endpoints for the reference and the test formulations similar enough? The concept is the most popular with a rise in adoption in the early 1990's by the United States and the European Union. It is considered to be the easiest criterion for a new formulation to achieve bioequivalence. It is required by most regulatories agencies for the product to be approved under a bioequivalence process.
+
+2. Population (PBE): are the distributions of the pharmacokinetic endpoints for the reference and the test formulations similar enough? In this case, it is not longer comparing just the expected value of the distributions but the full distribution. PBE is especially important for determining prescribability or the decision to assign a patient one of formulations as part of a treatment for the first time.
+
+3. Individual (IBE): are the distributions of the pharmacokinetic endpoints for the reference and the test formulations similar enough across a large proportion of the intended population? IBE is particularly relevant for switchability or the decision to substitute an ongoing regimen (change formulation) without detrimental effects to the patient.
+
+PBE and IBE can be assessed through two different methods:
+
+1. constant scaling: the regulatory agency provides a value to be used in determining PBE or IBE.
+
+2. reference scaling: the estimated total variance of the reference formulation in determining PBE or IBE.
+
+3. mixed scaling: use reference scaling when the estimated total variance of the reference formulation is greater than that of the test formulation and the constant scaling otherwise.
+
+!!! note
+
+    One argument for using the mixed scaling is that if the estimate of the total variance of the test formulation is greater than of the reference it bioequivalence would be very conservative.
+
+!!! info
+
+    The reference scaling system is most used when working with highly variable drugs (HVD), those with intrasubject variability > 30%, and narrow therapeutic index drugs (NTI), those drugs where small differences in dose or blood concentration may lead to serious therapeutic failures and/or adverse drug reactions that are life-threatening or result in persistent or significant disability or incapacity.
+
 ## Designs
 
-There are multiple study designs supported including:
+There are three major categories of bioequivalence study desings.
+
+Nonparametric for endpoints such as time of maximum concentration which typically do not have (or can easily transformed) a normal-like distribution.
+
+Parallel designs which are typically used when crossover designs are not feasible.
+
+Crossover (replicated and nonreplicated) designs which are the most commonly used by the industry.
+
+Designs are fully characterized by:
+
+- Subjects: participants in the study (each is assigned to a sequence)
+- Formulations: the different formulations being compared (i.e., reference and additional test formulations)
+- Periods: each dosing period at which each subject is administrated a formulation based on the sequence it has been assigned to
+- Sequences: a dosing regimen which establishes what formulation is given at each period
+
+!!! warning
+
+    The periods should be spaced enough such that there are no carryover effects from dosings in the previous periods.
 
 ### Nonparametric analysis (i.e., x formulations, y sequences, z periods)
 
@@ -39,7 +86,7 @@ When there are no tied ranks and ≤ 50 samples, or tied ranks and ≤ 15 sample
 
 Since the study design can be inferred from the data argument (i.e., based on sequences, formulations, and periods), the inferred study design approach will be automatically selected. Once can manually overwrite the method for the nonparametric option by selecting `nonparametric = true` in `pumas_be`.
 
-### Parallel design (i.e., x formulations, y sequences, 1 period, e.g. `R|S|T`)
+### Parallel design (i.e., x formulations, y periods, z sequences, e.g. `R|S|T`)
 
 Perform a Welch's t-test (i.e., unequal variance two-sample t-test) of the null hypothesis that the distribution of the reference formulation and the distribution of an alternative formulation comes have equal means. The number of degrees of freedom of the test uses the Welch-Satterthwaite equation:
 
@@ -48,7 +95,44 @@ Perform a Welch's t-test (i.e., unequal variance two-sample t-test) of the null 
         \frac{(k_i s_i^2)^2}{ν_i}}
 ```
 
-### Crossover design (i.e., 2 formulations, 2 sequences, 2 periods, e.g., `RT|TR`)
+### Crossover designs
+
+Crossover designs are divided into two categories:
+
+1. Replicated
+
+2. Nonreplicated
+
+Nonreplicated designs have subjects assigned to distinct formulations in each period.
+
+Replicated crossover designs are those with subjects receiving the same formulation more than once.
+A key feature of replicated designs is that it allows to estimate within-subject variances per formulation which are a component for assessing PBE and IPE.
+
+Common crossover designs:
+
+|    Name    | Number of Formulations | Number of Periods | Number of Sequences |            Example           | Replicated |
+|:----------:|:----------------------:|:-----------------:|:-------------------:|:----------------------------:|:----------:|
+|     2x2    |            2           |         2         |          2          |            RT\|TR            |    false   |
+|   Balaam   |            2           |         2         |          2          |        RR\|RT\|TR\|TT        |    true    |
+|    Dual    |            2           |         3         |          2          |           RTT\|TRR           |    true    |
+|    Inner   |            2           |         4         |          2          |          RRTT\|TTRR          |    true    |
+|    Outer   |            2           |         4         |          2          |          RTRT\|TRTR          |    true    |
+| Williams 3 |            3           |         3         |          6          | RST\|RTS\|SRT\|STR\|TRS\|TSR |    false   |
+| Williams 4 |            4           |         4         |          4          |    ADBC\|BACD\|CBDA\|DCAB    |    false   |
+
+Replicated designs are preferred, particularly the inner and outer designs.
+
+If employing the dual design, it is recommended to have a larger sample size in order to achieve the same level of statistical power.
+
+!!! note
+
+    In the United States, there is a minimum requirement of at least 12 evaluable subjects for any bioequivalence study.
+
+For analyzing more than two formulations at a time, the Williams designs, a generalized latin square, is the preferred design given its statistical power.
+
+There are two ways to analyze crossover designs:
+
+#### Linear model
 
 Performs a linear regression with the following model
 
@@ -57,22 +141,11 @@ Performs a linear regression with the following model
 ```
 where βⱼ, j ∈ [1, 2, 3, 4], are vectors for features where `formulation` uses the dummy variable coding and `sequence` and `period` use contrast coding.
 
-### Higher Order
-
-The following linear mixed model
+#### Linear mixed model
 
 ```
 log(endpoint) ~ formulation + sequence + period + (1 | id)
 ```
-
-is used for the following designs:
-
-- Balaam design (i.e., 2 formulations, 4 sequences, 2 periods, e.g., `RR|RT|TR|TT`)
-- Dual design (i.e., 2 formulations, 2 sequences, 3 periods, e.g., `RTT|TRR`)
-- Inner design (i.e., 2 formulations, 2 sequences, 4 periods, e.g., `RRTT|TTRR`)
-- Outer design (i.e., 2 formulations, 2 sequences, 4 periods, e.g., `RTRT|TRTR`)
-- Williams 3 Design (i.e., 3 formulations, 6 sequences, 3 periods, e.g., `RST|RTS|SRT|STR|TRS|TSR`)
-- Williams 4 Design (i.e., 4 formulations, 4 sequences, 4 periods, e.g., `ADBC|BACD|CBDA|DCAB`)
 
 !!! info
     
@@ -80,8 +153,8 @@ is used for the following designs:
     
     ```
     proc mixed data = data method = ml;
-    class sequence subject period formula;
-    model ln_endpoint = sequence period formula;
+    class sequence subject period formulation;
+    model ln_endpoint = sequence period formulation;
     random subject(sequence);
     ```
     
@@ -91,11 +164,9 @@ is used for the following designs:
 
     One can request to use the restricted maximum likelihood (REML) objective to match SAS default value through passing the `reml = true` argument to `pumas_be`.
 
-!!! note
+!!! tip
 
-    Every design supports estimating the average bioequivalence (population).
-    
-    Those study designs that allow for estimating individual bioequivalence (i.e., Balaam, Dual, Inner, Outer) report the estimates for individual population as well.
+    Per the Food and Drug Administration (US regulatory agency) [guidance](https://ntrl.ntis.gov/NTRL/dashboard/searchResults/titleDetail/PB2010104191.xhtml), replicated crossover designs should employ the linear mixed model approach while nonreplicated crossover desings should employ a linear model (linear mixed models for nonreplicated crossover desings are also acceptable).
 
 !!! validation
 

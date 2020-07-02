@@ -5,7 +5,7 @@ makedocs(
   modules=Module[#=Pumas=#Bioequivalence],
   doctest=true,
   clean=true,
-  format =Documenter.HTML(),
+  format =Documenter.HTML(assets = [joinpath("assets", "custom.css")]),
   sitename="Pumas",
   authors="Chris Rackauckas, Yingbo Ma, Joga Gobburu, Vijay Ivaturi",
   pages = Any[
