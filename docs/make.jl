@@ -1,10 +1,11 @@
 using Documenter#=, Pumas=#
+using Bioequivalence
 
 makedocs(
-  modules=Module[#=Pumas=#],
-  doctest=false,
+  modules=Module[#=Pumas=#Bioequivalence],
+  doctest=true,
   clean=true,
-  format =Documenter.HTML(),
+  format =Documenter.HTML(assets = [joinpath("assets", "custom.css")]),
   sitename="Pumas",
   authors="Chris Rackauckas, Yingbo Ma, Joga Gobburu, Vijay Ivaturi",
   pages = Any[
@@ -19,6 +20,7 @@ makedocs(
       "basics/simulation.md",
       "basics/estimation.md",
       "basics/nca.md",
+      "basics/be.md",
       "basics/faq.md",
     ],
     "Model Components" => Any[
@@ -34,4 +36,5 @@ makedocs(
 
 deploydocs(
    repo = "github.com/PumasAI/PumasDocs.jl.git",
+   push_preview = true,
 )
