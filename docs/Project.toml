@@ -5,6 +5,6 @@ Pumas = "4f2c3c20-a4ac-11e9-067b-e5872d3484cf"
 
 [compat]
 Bioequivalence = "0.1.6"
-Documenter = "0.25"
+Documenter = "0.24, 0.25"
 Pumas = "0.13"
 julia = "1.3"
