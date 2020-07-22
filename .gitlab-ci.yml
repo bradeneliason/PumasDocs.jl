@@ -17,8 +17,7 @@ build:
                 versioninfo()'
     - julia --project -e 'using Pkg; Pkg.instantiate()'
 
-deploy:
-  stage: deploy
+documentation:
   script:
     - julia -e 'using InteractiveUtils;
                 versioninfo()'
@@ -29,3 +28,13 @@ deploy:
   - tags
   - external
   - pushes
+
+pages:
+  stage: deploy
+  script:
+    - mv docs/build public
+  artifacts:
+    paths:
+    - public
+  only:
+    - master
