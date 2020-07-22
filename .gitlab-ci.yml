@@ -15,7 +15,9 @@ build:
   script:
     - julia -e 'using InteractiveUtils;
                 versioninfo()'
-    - julia --project -e 'using Pkg; Pkg.instantiate()'
+    - julia --color=yes --project=docs/ -e 'using Pkg; Pkg.instantiate()'
+    - julia --color=yes --project=docs/ -e 'using Pumas'
+    - julia --color=yes --project=docs/ -e 'using Bioequivalence'
 
 documentation:
   script:
