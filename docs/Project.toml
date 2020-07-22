@@ -1,7 +1,9 @@
 [deps]
 Bioequivalence = "4ece37e6-a012-11e8-38cd-91247efc2c34"
+DataFrames = "a93c6f00-e57d-5684-b7b6-d8193f3e46c0"
 Documenter = "e30172f5-a6a5-5a46-863b-614d45cd2de4"
 Pumas = "4f2c3c20-a4ac-11e9-067b-e5872d3484cf"
+Random = "9a3f8284-a2c9-5f02-9a11-845980a1fd5c"
 
 [compat]
 Bioequivalence = "0.1.6"

@@ -23,7 +23,7 @@ documentation:
   script:
     - julia -e 'using InteractiveUtils;
                 versioninfo()'
-    - julia --color=yes --project=docs/ -e 'using Pkg; Pkg.instantiate()'
+    # - julia --color=yes --project=docs/ -e 'using Pkg; Pkg.instantiate()'
     - julia --color=yes --project=docs/ docs/make.jl
   only:
   - master
