@@ -1,10 +1,10 @@
 using Documenter, Pumas
 using Bioequivalence
 
-ENV["COLUMNS"] = 90
+ENV["COLUMNS"] = 120
 
 DocMeta.setdocmeta!(Pumas, :DocTestSetup, :(using Pumas, Bioequivalence); recursive=true)
-DocMeta.setdocmeta!(Bioequivalence, :DocTestSetup, :(using Bioequivalence, Random); recursive=true)
+DocMeta.setdocmeta!(Bioequivalence, :DocTestSetup, :(using Bioequivalence, Random, DataFrames); recursive=true)
 
 makedocs(
   modules=Module[Pumas, Bioequivalence],
