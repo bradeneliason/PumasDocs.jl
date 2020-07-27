@@ -2,6 +2,7 @@ using Documenter, Pumas
 using Bioequivalence
 
 ENV["COLUMNS"] = 120
+ENV["LINES"] = 30
 
 DocMeta.setdocmeta!(Pumas, :DocTestSetup, :(using Pumas, Bioequivalence); recursive=true)
 DocMeta.setdocmeta!(Bioequivalence, :DocTestSetup, :(using Bioequivalence, Random, DataFrames); recursive=true)
