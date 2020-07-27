@@ -1,24 +1,32 @@
-image: "juliacomputing/juliapro:v1.4.1-3"
+image: "juliacomputing/juliapro:v1.4.2-1"
 
 variables:
   JULIA_PKG_SERVER: pumas.juliateam.io
   PRIVATE_REGISTRY_NAME: PumasRegistry
   PRIVATE_REGISTRY_UUID: 2207cf11-c0bb-4826-96c6-61cddfb0e7e8
   REMOVE_JULIAPRO: "true"
+  # GitLab requires that the cache path is insde the project
+  JULIA_DEPOT_PATH: "$CI_PROJECT_DIR/.julia/"
 
 cache:
   paths:
-    - $HOME/.julia/
+    - .julia/
 
 build:
   stage: build
   script:
     - julia -e 'using InteractiveUtils;
                 versioninfo()'
-    - julia --project -e 'using Pkg; Pkg.instantiate()'
+    - julia --color=yes --project=docs/ -e 'using Pkg; Pkg.instantiate()'
+    - julia --color=yes --project=docs/ -e 'using Pumas'
+    - julia --color=yes --project=docs/ -e 'using Bioequivalence'
+  only:
+  - master
+  - tags
+  - external
+  - pushes
 
-deploy:
-  stage: deploy
+documentation:
   script:
     - julia -e 'using InteractiveUtils;
                 versioninfo()'
@@ -29,3 +37,13 @@ deploy:
   - tags
   - external
   - pushes
+
+pages:
+  stage: deploy
+  script:
+    - mv docs/build public
+  artifacts:
+    paths:
+    - public
+  only:
+    - master

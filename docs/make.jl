@@ -1,13 +1,18 @@
-using Documenter#=, Pumas=#
+using Documenter, Pumas
 using Bioequivalence
 
+ENV["COLUMNS"] = 120
+
+DocMeta.setdocmeta!(Pumas, :DocTestSetup, :(using Pumas, Bioequivalence); recursive=true)
+DocMeta.setdocmeta!(Bioequivalence, :DocTestSetup, :(using Bioequivalence, Random, DataFrames); recursive=true)
+
 makedocs(
-  modules=Module[#=Pumas=#Bioequivalence],
+  modules=Module[Pumas, Bioequivalence],
   doctest=true,
   clean=true,
   format =Documenter.HTML(assets = [joinpath("assets", "custom.css")]),
   sitename="Pumas",
-  authors="Chris Rackauckas, Yingbo Ma, Joga Gobburu, Vijay Ivaturi",
+  authors="PumasAI",
   pages = Any[
     "Home" => "index.md",
     "Tutorials" => Any[
