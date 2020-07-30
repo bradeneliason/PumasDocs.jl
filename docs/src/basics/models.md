@@ -1,408 +1,553 @@
-# Defining NLME Models
+# Defining NLME models in Pumas
+We provide two interfaces: a macro based domain specific language (DSL) and a function based macro-free approach. In most instances, the DSL is appropriate to use, but for advanced users the functional interface might be useful.
 
-Nonlinear Mixed Effects (NLME) models are central to pharmacometric modeling.
-A model is the structure which includes the dynamical equations, the structure
-of the parameters (the names, domains, and constraints), and the observables.
-This page documents the two interfaces for defining a NLME model:
-
-1. The `@model` Domain-Specific Language (DSL) is for simplified definitions of
-   NLME models with standard naming assumptions.
-2. The function-based interface is for defining NLME models via Julia functions,
-   allowing for full flexibility and efficiency.
-
-We recommend that all users start with the `@model` DSL, and computationally-inclined
-pharmacometricians who are comfortable with more programmatic development
-(or those who need the enlarged feature-set) may wish to utilize the
-function-based interface. Both interface with the proceeding simulation and
-estimation tooling in the same manner.
-
-### Quick Note on Probability Distributions
-
-Many of the NLME model definition portions require the specification of
-probability distributions. The distributions in Pumas are defined by the
-[Distributions.jl](https://juliastats.github.io/Distributions.jl/stable/) library.
-All of the Distributions.jl `Distribution` types are able to be used throughout
-the Pumas model definitions. Multivariate domains defines values which are
-vectors while univariate domains define values which are scalars. For the full
-documentation of the `Distribution` types, please see
-[the Distributions.jl documentation](https://juliastats.github.io/Distributions.jl/stable/)
-
-## The `@model` DSL
-
-The `@model` DSL allows for simplified NLME definitions. This interface can also
-be used to define simpler linear and probability distribution models without
-the mixed effects. The components of a model (in order) are as follows:
-
-1. `@param` defines the fixed effects and other parameters of the model, along
-   with the domains and constraints on the parameters (for estimation).
-2. `@random` (optional) defines the random effects via probability distributions
-   on the parameters.
-3. `@covariates` (optional) defines the covariates of the model.
-4. `@pre` defines the pre-processing collation between the parameters, random
-   effects, and covariates for the definition of the dynamical parameters.
-5. `@vars` (optional) defines aliases that can be used in the proceeding blocks.
-6. `@init` (optional) defines the initial conditions for the dynamical model.
-7. `@dynamics` (optional) defines the dynamical model, either by its
-   differential equation or its analytical solution.
-8. `@derived` defines the derived observables from the dynamical model's
-   solution, including the error distributions.
-9. `@observed` (optional) defines post-processing on the observables sampled
-   from the error distributions.
-
-All of these blocks allow the use of Julia functions defined outside of the
-macro.
-
-### `@param`: Parameters
-
-This block defines the structure of the parameters within the model. Parameters
-are defined by an `in` (or ∈, written via \in) statement specifying the `Domain`
-type that the parameter  resides in. For example, to specify θ as a real scalar,
-one would write:
-
+## The `@model` macro interface
+The simplest way to define an NLME model in Julia is to use the `@model` macro. We can define the simplest model of them all, the empty model, as follows
+```@meta
+DocTestSetup = quote
+    using Pumas
+end
+```
 ```julia
-θ in RealDomain()
+julia
+@model begin
+
+end
+```
+This creates a model with no parameters, no covariates, no dyamics, ..., nothing! To populate the model, we need to include one of the possible model blocks. The possible blocks are:
+- `@param`, fixed effects specifications
+- `@random`, random effects specifications
+- `@covariates`, covariate names
+- `@pre`, pre-processing variables for the dynamic system and statistical specification
+- `@vars`, short-hand notation
+- `@init`, initial conditions for the dynamic system
+- `@dynamics`, dynamics of the model
+- `@derived`, statistical modelling of dependent variables
+- `@observed`, model information to be stored in model solution
+
+The definitions in these blocks are generally only available in the blocks further down the list.
+
+### `@param`: Fixed effects
+The fixed effects, also called population parameters, are specified in the `@param` block. Parameters
+are defined by an `in` (or ∈, written via \in) statement that connects a parameter name and a domain.
+For example, to specify θ as a real scalar in a model, one would write:
+
+```jldoctest
+@model begin
+  @param begin
+    θ ∈ RealDomain(lower=0.0, upper=17.0)
+  end
+end
+
+# output
+
+PumasModel
+  Parameters: θ
+  Random effects: 
+  Covariates: 
+  Dynamical variables: 
+  Derived: 
+  Observed: 
+```
+which creates a model with a parameter that has a lower and upper bound on the allowed values.
+
+!!! tip
+   Pumas.jl does not expect specific names for parameters, dependent variables, and so on. This
+   means that fixed effects do not have to be called θ, random effects don't have to be called η,
+   variability (variance-covariance) matrices for random effects don't have to be called Ω, and so on
+   Pick whatever is natural for your context.
+
+Different domains are available for different purposes. Their names and purposes are
+
+- `RealDomain` for scalar parameters
+- `VectorDomain` for vectors
+- `PDiagDomain` for positive definite matrices with diagonal structure
+- `PSDDomain` for general positive semi-definite matrices
+
+Different domains can be used when we want to have our parameters be scalars or vectors (`RealDomain` vs `VectorDomain`) or have certain properties (`PDiagDomain` and `PSDDomain`). The simplest way of specifying amodel is in terms of all scalar parameters
+```jldoctest; output = false
+@model begin
+  @param begin
+    θCL ∈ RealDomain(lower=0.001, upper=50.0)
+    θV  ∈ RealDomain(lower=0.001, upper=500.0)
+    ω²η ∈ RealDomain(lower=0.001, upper=20.0)
+  end
+end
+
+# output
+
+PumasModel
+  Parameters: θCL, θV, ω²η
+  Random effects: 
+  Covariates: 
+  Dynamical variables: 
+  Derived: 
+  Observed: 
 ```
 
-```julia
-θ ∈ RealDomain()
+where we have defined a seperate variable for population clearance and volume as well as the variance of a scalar (univariate) random effect. The same model could be written using vectors and matrix type domains using something like the following
+
+```jldoctest; output = false
+@model begin
+  @param begin
+    θ  ∈ VectorDomain(2, lower=[0.001, 0.001], upper=[50.0, 500.0])
+    Ωη ∈ PDiagDomain(1) # no lower or upper keywords!
+  end
+end
+
+# output
+PumasModel
+  Parameters: θ, Ωη
+  Random effects: 
+  Covariates: 
+  Dynamical variables: 
+  Derived: 
+  Observed: 
 ```
 
-Many of these domains allow specifying bounds, for example, we can specify
-θ as a scalar between 0.0 and 1.0 via:
+Notice, that we collapsed the two parameters `θCL` and `θV` into a single vector `θ`, and if we want to use the elements in the model you will have to use indexing `θ[1]` for `θCL` and `θ[2]` for `θV`. It is also necessary to specify the dimension of the vector which is two in this case. The `PDiagDomain` domain type is special. It makes `Ωη` have the interpretation of a matrix type, specifically a diagonal matrix. Additionally, it tells Pumas that when `fit`ing the multivariate parameter should be kept positive definite. The obvious use case here is variance-covariance matrices, and specifically it's useful for random effect vectors where each random effect is independent of the other. We will get back to this below.
 
-```julia
-θ ∈ RealDomain(lower=0.0, upper=1.0)
+Finally, we have the `PSDDomain`. This is different from `PDiagDomain` mainly by representing a "full" variance-covariance matrix. This means that one random effect can correlate with other random effects.
+
+```jldoctest; output = false
+@model begin
+  @param begin
+    θ ∈ VectorDomain(2, lower=[0.001, 0.001], upper=[50.0, 500.0])
+    Ωη ∈ PSDDomain(1) # no lower upper!
+  end
+end
+
+# output
+
+PumasModel
+  Parameters: θ, Ωη
+  Random effects: 
+  Covariates: 
+  Dynamical variables: 
+  Derived: 
+  Observed: 
 ```
 
-For the full specifications of the domain types, please the [Domains](@ref) page.
-Additionally, parameters can be defined via a probability distributions, in
-which case the values are defined via `~`. For example, we can say that θ
-comes from a standard normal distribution via:
+Besides actual domains, it is possible to define parameters in terms of their priors. A model with a parameter
+that has a multivariate normal (`MvNormal`) prior can be defined as:
 
-```julia
-θ ~ Normal(0,1)
+```jldoctest; output = false
+μ_prior = [0.1, 0.3]
+Σ_prior = [1.0 0.1
+           0.1 3.0]
+@model begin
+  @param begin
+    θ ~ MvNormal(μ_prior, Σ_prior)
+  end
+end
+
+# output
+
+PumasModel
+  Parameters: θ
+  Random effects: 
+  Covariates: 
+  Dynamical variables: 
+  Derived: 
+  Observed: 
+```
+A prior can be wrapped in a `Constrained(prior; lower=lv, upper=uv)`  to constrain values to be between `lv` and `uv`. See `?Constrained` for more details.
+
+!!! tip
+    Many of the NLME model definition portions require the specification of
+    probability distributions. The distributions in Pumas are generally defined by the
+    [Distributions.jl](https://juliastats.github.io/Distributions.jl/stable/) library.
+    All of the Distributions.jl `Distribution` types are able to be used throughout
+    the Pumas model definitions. Multivariate domains defines values which are
+    vectors while univariate domains define values which are scalars. For the full
+    documentation of the `Distribution` types, please see
+    [the Distributions.jl documentation](https://juliastats.github.io/Distributions.jl/stable/)
+
+### `@random`: Random effects
+
+The novelty of the NLME approach comes from the individual variability. We just saw that `@param`
+was used to specify fixed effects. The appropriate block for specifying random effects is simply called
+`@random`. The parameters specified in this block can be scalar or vectors just as fixed parameters, but
+they will always be defined by the distribution they are assumed to follow.
+
+The parameters are defined by a `~` (read: distributed as) expression:
+
+```jldoctest
+@model begin
+  @param begin
+    ω²η ∈ RealDomain(lower=0.0001)
+  end
+  @random begin
+    η ~ Normal(0, sqrt(ω²η))
+  end
+end
+
+# output
+
+PumasModel
+  Parameters: ω²η
+  Random effects: η
+  Covariates: 
+  Dynamical variables: 
+  Derived: 
+  Observed: 
 ```
 
-Implicitly, the domain of θ is the support of the probability distributions.
-Thus for this example, the domain of θ is the same as `RealDomain()`. However,
-if the value of θ is not specified in the parameter list during simulation,
-θ will automatically be sampled from this distribution. Additionally, this
-probability distribution can be thought of as the prior distribution on
-θ and is utilized in Bayesian estimation routines.
+We see that we defined a variability parameter `ω²η` to parameterize the variance of the univariate `Normal` distribution of the η. We put a lower bound of `0.0001` because a variance *cannot* be negative, and a variance of exactly zero would lead to a degenerate distribution. We always advise to put bounds on variables whenever posible. We also advise using the unicode `²` (\^2 + Tab) to show that it's a variance, though this is optional. The `Normal` distribution Distributions.jl requires two positional arguments: the mean (here: 0) and the standard deviation (here: the square root of our variance). For more details type `?Normal` in the REPL. It is of course possible to have as many univariate random effects as you want:
 
-The parameters block is a list of parameter domain definitions, for example:
+```jldoctest; output = false
+@model begin
+  @param begin
+    Ωη ∈ VectorDomain(3, lower=0.0001)
+  end
+  @random begin
+    η1 ~ Normal(0, sqrt(Ωη[1]))
+    η2 ~ Normal(0, sqrt(Ωη[2]))
+    η3 ~ Normal(0, sqrt(Ωη[3]))
+  end
+end
 
+# output
+
+PumasModel
+  Parameters: Ωη
+  Random effects: η1, η2, η3
+  Covariates: 
+  Dynamical variables: 
+  Derived: 
+  Observed: 
+```
+
+Notice the use of indexing into the `Ωη` parameter that is now a vector. Other ways of 
+parameterizing random effects include vector (multivariate) distributions:
+
+```jldoctest; output = false
+@model begin
+  @param begin
+    Ωη ∈ VectorDomain(3, lower=0.0001)
+  end
+  @random begin
+    η ~ MvNormal(sqrt.(Ωη))
+  end
+end
+
+# output
+
+PumasModel
+  Parameters: Ωη
+  Random effects: η
+  Covariates: 
+  Dynamical variables: 
+  Derived: 
+  Observed: 
+```
+
+where `η` will have a diagonal variance-covariance structure because we input a vector of standard deviations. This can also be
+achieved using the `PDiagDomain` as we saw earlier and then we don't have to worry about the `lower` keyword
+
+```jldoctest; output = false
+@model begin
+  @param begin
+    Ωη ∈ PDiagDomain(3)
+  end
+  @random begin
+    η ~ MvNormal(Ωη)
+  end
+end
+
+# output
+
+PumasModel
+  Parameters: Ωη
+  Random effects: η
+  Covariates: 
+  Dynamical variables: 
+  Derived: 
+  Observed: 
+```
+
+Do notice that `Ωη` is not to be considered a vector here, but an actual diagonal matrix, so `Ωη` is now the (diagonal) variance-covariance matrix, not a vector of standard deviations. The `@random` block is the same if we allow full covariance structure:
+
+```jldoctest; output = false
+@model begin
+  @param begin
+    Ωη ∈ PSDDomain(3)
+  end
+  @random begin
+    η ~ MvNormal(Ωη)
+  end
+end
+
+# output
+
+PumasModel
+  Parameters: Ωη
+  Random effects: η
+  Covariates: 
+  Dynamical variables: 
+  Derived: 
+  Observed: 
+```
+
+For cases where you have several random effects with the exact same distribution, such as between-occation-variability (BOV), it is convenient to construct a single vector η that has diagonal variance-covariance structure with identical variances down the diagonal. This can be achieved using a special constructor that takes in the dimension and the standard deviation
+
+```jldoctest; output = false
+@model begin
+  @param begin
+    ω²η ∈ RealDomain(lower=0.0001)
+  end
+  @random begin
+    η ~ MvNormal(4, sqrt(ω²η))
+  end
+end
+
+# output
+
+PumasModel
+  Parameters: ω²η
+  Random effects: η
+  Covariates: 
+  Dynamical variables: 
+  Derived: 
+  Observed: 
+```
+
+You could use four scalar `η`'s as shown above, but for BOV it is useful to encode the occations using integers 1, 2, 3, ..., N and simply index into `η` using `η[OCC]` where `OCC` is the occation covariate.
+
+### `@covariates`
+The covariates in the model have to be specified in the `@covariates` block. This information is used to
+generate efficient code for expanding covariate information from each subject when solving the model or
+evaluating likelihood contributions from observations. The format is simply to either use a block
+
+```jldoctest
+@model begin
+  @covariates begin
+    weight
+    age
+    OCC
+  end
+end
+
+# output
+
+PumasModel
+  Parameters: 
+  Random effects: 
+  Covariates: weight, age, OCC
+  Dynamical variables: 
+  Derived: 
+  Observed: 
+```
+   
+or a one-liner
+
+```jldoctest
+@model begin
+  @covariates weight age OCC
+end
+
+# output
+
+PumasModel
+  Parameters: 
+  Random effects: 
+  Covariates: weight, age, OCC
+  Dynamical variables: 
+  Derived: 
+  Observed: 
+```
+
+### `@pre`: Pre-processing of input to dynamics and derived
+
+Before we move to the actual dynamics of the model (if there are any) and the statistical model
+of the observed variables we need to do some preprocessing of parameters and covariates to get 
+our rates and variables ready for our ODEs or distributions. This is done in the `@pre` block.
+
+In the `@pre` block all calculations are written as if they happen at some arbitrary point in 
+time `t`. Let us see an example
 ```julia
-@param begin
-    θ ∈ VectorDomain(3, lower=[0.0,0.0,0.0], upper=[20.0,20.0,20.0])
-    Ω ∈ PSDDomain(2)
-    Σ ∈ ConstDomain(0.1)
+@model begin
+  # Fixed parameters  
+  @param begin
+    θCL ∈ RealDomain(lower=0.0001, upper=20.0)
+    θV  ∈ RealDomain(lower=0.0001, upper=91.0)
+    θbioav ∈ RealDomain(lower=0.0001, upper=1.0)
+    ω²η ∈ RealDomain(lower=0.0001)
+  end
+
+  # Random parameters
+  @random begin
+    η ~ MvNormal(4, sqrt(ω²η))
+  end
+
+  # Covariate enumeration  
+  @covariates weight age OCC
+
+  # Preprocessing of input to dynamics and derived
+  @pre begin
+    CL = θCL*sqrt(weight)/age + η[OCC]
+    V = θV*sin(t)
+    bioav = (Depot=θbioav, Central=0.4)
+  end
 end
 ```
 
-Note that this block is for the structure and not the values of the parameters.
-The values are defined when invoking simulation or estimation so that they
-can more easily be modified.
+We see that when we assign the right-hand side to `CL`, it involves weight, age and occation counter, OCC. These might all be recorded as time-varying, especially the last one. The first line of `@pre` then means that whenever `CL` is referenced in the dynamic model or in the statistical model it will have been calculated with the covariates evaluated at the appropriate time. The next line that defines volume of distribution, `V`, shows this by explicitly using `t` (a reserved keyword) to model `V` as something that varies with time.
 
-### `@random`: Random Effects
+The last line we see is special as it uses what is called a dose control parameter (DCP). The line sets bioavailability for a `Depot` compartment to a parameter in our model `θbioav`, and bioavailability of another compartment `Central` to a fixed value of 0.4. If a compartment is not mentioned in the `NamedTuple` it will be set to 1.0. Other DCPs are: `lags`, `rate`, and `duration`. 
 
-This block defines the structure of the random effect sampling process. These
-structures are given by `~` statements to probability distributions which
-may be defined by parameters. For example, if Ω is a positive-definite matrix,
-we can specify that η is defined as a sample from a multivariate normal
-distribution with covariance matrix Ω via the statement:
+!!! tip
+    The dose control parameters are entered as `NamedTuple`s. If a DCP is just set for one compartment to have the rest default to 1.0 it is a common mistake to write `rate = (Depot=θ)` instead of `rate = (Depot=θbioav,)`. Notice the trailing `,` in the second expression which is required to construct a `NamedTuple` in Julia.
+
+### `@vars`: Short-hand notation
+Suppose we have a model with a dynamic variable `Central` and a volume of dispersion `V`. You can define short-hand notation for the implied plasma concentration to be used elsewhere in the model in `@vars`: 
 
 ```julia
-η ~ MVNormal(Ω)
-```
-
-The `@random` block is defined by a list of such statements, like:
-
-```julia
-@random begin
-   η ~ MVNormal(Ω)
-   κ ~ MVNormal(Π)
+@model begin
+  ...
+  @vars begin
+    conc = Central/V
+  end
 end
 ```
 
-### `@covariates`: Covariates
+While some users find `@vars` useful we advise users to use it with caution. Short-hand notation involving dynamic variables might make the `@dynamics` block harder to read. Short-hand notation that doesn't not involve dynamic variables should rather just be specified in `@pre`. 
 
-The `@covariates` block defines the names of the covariates. This is a simply
-a list of names, such as:
+### `@init`: Initializing the dynamic system
+This block defines the initial conditions of the dynamical model in terms of the parameters, random effects, and pre-processed variables. It is defined by a series of equality (=) statements. For example, to set the initial condition of the Response dynamical variable to be the value of the 5th term of the parameter θ, we would use the syntax:
 
 ```julia
-@covariates wt sex height
+@model beign
+  @param begin
+    θ ∈ VectorDomain(3, lower=[0.0,0.0,1.0], upper=[3.0,1.0,4.0])
+  end
+  @init begin
+    Depot = θ[2]
+  end
+end
 ```
+Any variable omitted from this block is given the default initial condition of 0. If the block is omitted, then all dynamical variables are initialized at 0.
 
-or
+Note that the special value := can be used to define intermediate statements that will not be carried outside of the block.
+
+### `@dynamics`: The dynamic model
+
+
+The @dynamics block defines the nonlinear function from the parameters to the derived variables via a dynamical (differential equation) model. It can currently be specified either by an analytical solution type, an ordinary differential equation (ODE) or a combination of the two (for more types of differential equations, please see the function-based interface).
+
+The analytical solutions are defined in the [Dynamical Problem Types](@ref) page and can be invoked via the name. For example,
 
 ```julia
-@covariates begin
-   wt
-   sex
-   height
+@model begin
+  @param begin
+    θCL ∈ RealDomain(lower=0.001, upper=10.0)
+    θVc ∈ RealDomain(lower=0.001, upper=10.0)
+  end
+
+  @pre begin
+    CL = θCL
+    Vc = θVc
+  end
+
+  @dynamics Central1
+end
+```
+defines the dynamical model as the one compartment model `Central1` represents. The model has two required parameters: `CL` and `Vc`. These have to be defined in `@pre` when this model is used. All models with analytical solutions have the required parameters listed in their docstring which can be seen by typing `?Central1` in the REPL. Alternatively, it is listed in the documentation on the [Analytical Problems](@ref) page.
+
+For a system of ODEs that has to be numerically solved, the dynamical variables are defined by their derivative expression. A derivative expression is given by a variable's derivative (specified by ') and an equality (=). For example, the following defines a model equivalent to the model above:
+
+```julia
+@model begin
+  @param begin
+    θCL ∈ RealDomain(lower=0.001, upper=10.0)
+    θVc ∈ RealDomain(lower=0.001, upper=10.0)
+  end
+
+  @pre begin
+    CL = θCL
+    Vc = θVc
+  end
+
+  @dynamics begin
+    Central' = -CL/Vc*Central
+  end
 end
 ```
 
-Covariates in the model match the structures they inherit from the data defined
-in the `Subject`.
+Variable aliases defined in the @vars are accessible in this block. Additionally, the variable t is reserved for the solver time if you want to use something like `sin(t)` in your model formulation.
 
-### `@pre`: Pre-Processing
+Note that any Julia function defined outside of the @model block can be invoked in the @dynamics block.
 
-The `@pre` block defines the pre-processing collation for the definition of
-the dynamical parameters from the fixed and random effects. These values are
-specified by equality (`=`) statements. For example, one may specify that the
-parameter `Ka` is defined by the first value of θ and the first value of η,
-we can write the command:
 
-```julia
-Ka = θ[1] * exp(η[1])
-```
-
-Standard Julia syntax can be used within this block, any externally defined
-Julia functions can be used in this block, and the resulting variables can
-be any Julia type. One consequence of allowing these values to be any Julia
-type is that the pre-processed variables can be Julia functions. For example,
-we can define `Ka` as a time-dependent function by using Julia's
-[anonymous function syntax](https://docs.julialang.org/en/v1/manual/functions/index.html#man-anonymous-functions-1):
+### `@derived`: Statistical modelling of observed variables
+This block is used to specify the assumed distributions of observed variables that are derived from
+the blocks above. All variables are referred to a the subject's observation times which means they are vectors.
+This means we have to use "dot calls" on functions of dynamic variables, parameters, variables from `@pre`, etc.
 
 ```julia
-Ka = t -> t*θ[1]
-```
+@model begin
+  @param begin
+    θCL ∈ RealDomain(lower=0.001, upper=10.0)
+    θVc ∈ RealDomain(lower=0.001, upper=10.0)
+    ω²η ∈ RealDomain(lower=0.001, upper=20.0)
+  end
 
-`@pre` is defined by a list of such equality statements, for example:
+  @pre begin
+    CL = θCL
+    Vc = θVc
+  end
 
-```julia
-@pre begin
-    Ka = θ[1]
-    CL = θ[2]*exp(η[1])
-    Vc = t -> t*θ[3]*exp(η[2])
+  @dynamics begin
+    Central' = -CL/Vc*Central
+  end
+
+  @derived begin
+    cp := @. Central/Vc
+    dv ~ @. Normal(cp, sqrt(ω²η))
+  end
 end
 ```
 
-#### Dosing Control Parameters
-
-Special parameters, such as `lag`, are used to control the internal event
-handling (dosing) system. For more information on these parameters, see the
-[Dosing Control Parameters (DCP)](@ref) page.
-
-### `@vars`: Variable Aliases
-
-The `@vars` block defines aliases which can be used in the proceeding blocks.
-In the `@init` and `@dynamics` blocks the statement is interpreted to take
-place at the current solver time, while in the `@derived` and `@observed` the
-values alias the time series along the solution. An alias is defined by an
-equality (`=`) statement. For example, to define `conc` as an alias for
-the dynamical variable `Central` divided by the parameter `V`, we would write
-the equation:
-
-```julia
-@vars begin
-   conc = Central / V
-end
-```
-
-Note that the variable `t` for time can be utilized within these expressions.
-Inside the `@init` and `@dynamics` blocks it stands for the solver time, while
-in the `@derived` and `@observed` blocks it stands for the current time in the
-time series. For example,
-
-```julia
-@vars begin
-   conc_t = conc / t
-end
-```
-
-is the value of `conc` divided by `t`.
-
-The `@vars` block is defined by a list of such equality statements, such as:
-
-```julia
-@vars begin
-    conc   = Central / V
-    conc_t = conc / t
-end
-```
-
-Note that the special value `:=` can be used to define intermediate statements
-that will not be carried outside of the block.
-
-### `@init`: Initial Conditions
-
-This block defines the initial conditions of the dynamical model in terms of
-the parameters, random effects, and pre-processed variables. It is defined
-by a series of equality (`=`) statements. For example, to set the initial
-condition of the `Response` dynamical variable to be the value of the 5th term
-of the parameter θ, we would use the syntax:
-
-```julia
-Response = θ[5]
-```
-
-The block is then given by a sequence of such statements, such as:
-
-```julia
-@init begin
-   Response1 = θ[5]
-   Response2 = Kin/Kout
-end
-```
-
-where `Kin` and `Kout` were defined earlier in the `@pre` block.
-
-Any variable omitted from this block is given the default initial condition
-of 0. If the block is omitted, then all dynamical variables are initialized
-at 0.
-
-Note that the special value `:=` can be used to define intermediate statements
-that will not be carried outside of the block.
-
-### `@dynamics`: The Dynamical Model
-
-The `@dynamics` block defines the nonlinear function from the parameters to
-the derived variables via a dynamical (differential equation) model. It can
-currently be specified either by an analytical solution type or via an
-ordinary differential equation (ODE) (for more types of differential equations,
-please see the function-based interface).
-
-The analytical solutions are defined in the
-[Dynamical Problem Types](@ref) page and can be invoked via the name. For example,
-
-```julia
-@dynamics OneCompartmentModel
-```
-
-defines the dynamical model as the `OneCompartmentModel`.
-
-For a system of ODEs, the dynamical variables are defined by their derivative
-expression. A derivative expression is given by a variable's derivative
-(specified by `'`) and an equality (`=`). For example, the following defines
-the value `Depot` by it's ODE:
-
-```julia
-Depot' = -Ka*Depot
-```
-
-where `Ka` was defined in the `@pre` block. Variable aliases defined in the
-`@vars` are accessible in this block. Additionally, the variable `t` is reserved
-for the solver time. For example, if `Ka(t)` was defined as a function in the
-`@pre` block, then the value of `Ka` at solver time can be utilized in the
-derivative expression via:
-
-```julia
-Depot' = -Ka(t)*Depot
-```
-
-This is utilized for handling constructs such as time-varying covariates.
-
-Note that any Julia function defined outside of the `@model` block can be
-invoked in the `@dynamics` block.
-
-### `@derived`: Derived Observables
-
-The `@derived` block defines the derived observables of the NLME model. They
-can be defined by any combination of the parameters, random effects, covariates,
-preprocessed variables, dynamical variables, and aliases. In this block, the
-value `t` is the time series which matches the array given in `subject.time`.
-The dynamical variables are an array which matches `t` in size, where `var[i]`
-is the value of the dynamical variable at time `t[i]`. Any aliases of a
-dynamical variable are also a time series.
-
-Observables can either be defined by equality statements `=` or by a distribution
-with `~`. For example, the equality statement
-
-```julia
-conc = @. Central / V
-```
-
-defines an array `conc` to be output from the model. Notice that we used Julia's
-[broadcast syntax](https://docs.julialang.org/en/v1/manual/arrays/index.html#Broadcasting-1) (`@.`) for specifying that every value of Central is to be divided
-by `V`. Note that any standard Julia syntax (and externally defined functions)
-are allowed in this block.
-
-Error models are defined by `~` statements to probability distributions. For
-example, the following defines a time series of Normal distributions centered
-around the value of `conc` with a variance dependent on `conc` and `ϵ`:
+We define `cp` (concentration in plasma) using `:=` which means that the variable `cp` will not be stored in the output you get when evaluating the model's `@derived` block. In many cases it is easier to simply write it out like this:
 
 ```julia
 @derived begin
-   dv ~ @. Normal(conc,conc*ϵ)
+  dv ~ @. Normal(Central/Vc, sqrt(ω²η))
 end
 ```
 
-The likelihood of these distributions are utilized in the maximum likelihood
-and Bayesian estimation routines. Additionally, values in the `@observed`
-block are sampled from these error models.
+This will be slightly faster. However, sometimes it might be helpful to use `:=` for intermediary calculations in complicated expressions.
 
-The `@derived` block is defined by a list of these expressions, for example:
+### `@observed`: Sampled observations
+
+If you wish to store some information from the model solution or calculate a variable based on the model solutions and parameters that has nothing to do with the statistical modeling it is useful to define these variables in the `@observed` block. A simple example could be that you want to store a scaled plasma concentration. This could be written like the following:
+
 
 ```julia
-@derived begin
-   conc = @. Central / V
-   dv ~ @. Normal(conc,conc*ϵ)
+@model begin
+  @param begin
+    θCL ∈ RealDomain(lower=0.001, upper=10.0)
+    θVc ∈ RealDomain(lower=0.001, upper=10.0)
+    ω²η ∈ RealDomain(lower=0.001, upper=20.0)
+  end
+
+  @pre begin
+    CL = θCL
+    Vc = θVc
+  end
+
+  @dynamics begin
+    Central' = -CL/Vc*Central
+  end
+
+  @observed begin
+    cp1000 = @. 1000*Central/Vc
+  end
 end
 ```
 
-Note that the special value `:=` can be used to define intermediate statements
-that will not be carried outside of the block.
+which will cause functions like `simobs` to store the simulated plasma concentration multiplied by a thousand.
 
-As a convenience, tie-ins with the included Noncompartmental Analysis (NCA)
-suite are given with via the `@nca` macro. For example, we can perform an NCA
-analysis via:
-
-```julia
-@derived begin
-   conc = @. Central / V
-   dv ~ @. Normal(conc,conc*ϵ)
-   nca := @nca conc
-end
-```
-
-to build an `NCASubject` using the time series given by the derived or dynamical
-variable `conc`. Once defined, the functionality of the
-[Noncompartmental Analysis (NCA)](@ref) can be
-used to define derived variables via NCA diagnostics, for example:
-
-```julia
-@derived begin
-   conc = @. Central / V
-   dv ~ @. Normal(conc,conc*ϵ)
-   nca := @nca conc
-   auc =  NCA.auc(nca)
-   thalf =  NCA.thalf(nca)
-   cmax = NCA.cmax(nca)
-end
-```
-
-Notice that the `@derived` block can mix values of different types (such as
-arrays and scalars) in the output.  
-
-### `@observed`: Sampled Observations
-
-The `@observed` block allows one to define output variables based on the
-sampled values from the error model. These are given by equality statements
-(`=`) which can utilize the parameters, random effects, covariates, dynamical
-variables, and any sampled derived variables. For example, if we had defined:
-
-```julia
-@derived begin
-   dv ~ @. Normal(conc,conc*ϵ)
-end
-```
-
-then we can add the simulated AUC of the concentration with the error model's
-stochasticity (the `dv` values of one simulation) by utilizing the NCA features
-from within the `@observed` block as follows:
-
-```julia
-@observed begin
-   nca := @nca dv
-   sampled_auc = NCA.auc(nca)
-end
-```
-
-If no `@observed` block is specified, then the results of a simulation will
-simply be the derived values and the samples from the error models.
 
 ## The PumasModel Function-Based Interface
 
@@ -412,24 +557,37 @@ functions. In fact, under the hood the `@model` DSL works by building an
 expression for the `PumasModel` interface! A `PumasModel` has the constructor:
 
 ```julia
-PumasModel(paramset,random,pre,init,prob,derived,observed=(col,sol,obstimes,samples,subject)->samples)
+PumasModel(
+  paramset,
+  random,
+  pre,
+  init,
+  prob,
+  derived,
+  observed=(col,sol,obstimes,samples,subject)->samples)
 ```
 
-Notice that the `observed` function is optional. This section describes the API
-of the functions which make up the `PumasModel` type. The structure closely
-follows that of the `@model` macro but is more directly Julia syntax.
+Notice that the `observed` function is optional. 
+
+This section describes the API of the functions which make up the `PumasModel` type.
+The structure closely follows that of the `@model` macro but is more directly Julia syntax.
+Only `observed` is optional as opposed to the DSL where we could omit certain blocks and
+have Pumas automatically fill in blank objects for us.
 
 ### The `paramset` ParamSet
 
-The value `paramset` is a `ParamSet` object which takes in a named tuple of `Domain`
-types. These `Domain` types are defined on the [Domains](@ref) page. For example,
-the following is a value `ParamSet` construction:
+The value `paramset` is a `ParamSet` object which takes in a named tuple of `Domain` or
+distribution types. The allowed types are defined and explained on the [Domains](@ref) page. For example,
+the following is a valid `ParamSet` construction:
 
-```julia
+```jldoctest; output = false
 paramset = ParamSet((θ = VectorDomain(4, lower=zeros(4)), # parameters
               Ω = PSDDomain(2),
-              Σ = RealDomain(lower=0.0),
-              a = ConstDomain(0.2)))
+              Σ = RealDomain(lower=0.0)))
+
+# output
+
+ParamSet{NamedTuple{(:θ, :Ω, :Σ),Tuple{VectorDomain{Array{Float64,1},Array{TransformVariables.Infinity{true},1},Array{Float64,1}},PSDDomain{Array{Float64,2}},RealDomain{Float64,TransformVariables.Infinity{true},Float64}}}}((θ = VectorDomain{Array{Float64,1},Array{TransformVariables.Infinity{true},1},Array{Float64,1}}([0.0, 0.0, 0.0, 0.0], [TransformVariables.Infinity{true}(), TransformVariables.Infinity{true}(), TransformVariables.Infinity{true}(), TransformVariables.Infinity{true}()], [0.0, 0.0, 0.0, 0.0]), Ω = PSDDomain{Array{Float64,2}}([1.0 0.0; 0.0 1.0]), Σ = RealDomain{Float64,TransformVariables.Infinity{true},Float64}(0.0, TransformVariables.Infinity{true}(), 0.0)))
 ```
 
 ### The `random` Function
@@ -455,27 +613,28 @@ definition of the `pre` function:
 
 ```julia
 function pre(param,randeffs,subject)
-    (Σ  = param.Σ,
-    Ka = param.θ[1],  # pre
-    CL = param.θ[2] * ((subject.covariates.wt/70)^0.75) *
-         (param.θ[4]^subject.covariates.sex) * exp(randeffs.η[1]),
-    V  = param.θ[3] * exp(randeffs.η[2]))
+  function pre_t(t)
+    cov_t = subject.covariates(t)
+    CL = param.θ[2] * ((cov_t.wt/70)^0.75) * (param.θ[4]^cov_t.sex) * exp(randeffs.η[1])
+    return (Σ=param.Σ, Ka=param.θ[1], CL=CL, V=param.θ[3] * exp(randeffs.η[2]))
+  end
 end
 ```
 
-The output can be any valid Julia type. Notice that the covariates are
-specified via the `subject.covariates` field.
+Such that it spits out something that can be called with a point in time `t` and returns the pre-processed
+variables at that time. Notice that the covariates are found as a function of `t` in the `subject.covariates` field.
 
 #### Dosing Control Parameters
 
 Special parameters in the return of the `pre` function, such as `lag`, are
 used to control the internal event handling (dosing) system. For more
 information on these parameters, see the [Dosing Control Parameters (DCP)](@ref) page.
+If they are left out of the returned `NamedTupled` they assume their default values.
 
 ### The `init` Function
 
 The `init` function defines the initial conditions of the dynamical variables
-from the collated preprocessed values `col` and the initial time point `t0`.
+from the pre-processed values `col` and the initial time point `t0`.
 Note that this follows the [DifferentialEquations.jl](http://docs.juliadiffeq.org/latest/)
 convention, in that the initial value type defines the type for the state used
 in the evolution equation.
@@ -524,7 +683,7 @@ subsequent sampling of the error models). For example, the following is a valid
 `derived` function which outputs a named tuple:
 
 ```julia
-function derived(col,sol,obstimes,subject)
+function derived(col, sol, obstimes, subject)
     central = sol(obstimes;idxs=2)
     conc = @. central / col.V
     dv = @. Normal(conc, conc*col.Σ)
