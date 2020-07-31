@@ -1,5 +1,5 @@
 # Defining NLME models in Pumas
-We provide two interfaces: a macro based domain specific language (DSL) and a function based macro-free approach. In most instances, the DSL is appropriate to use, but for advanced users the functional interface might be useful.
+We provide two interfaces: a macro-based domain-specific language (DSL) and a function-based macro-free approach. In most instances, the DSL is appropriate to use, but for advanced users, the functional interface might be useful.
 
 ## The `@model` macro interface
 The simplest way to define an NLME model in Julia is to use the `@model` macro. We can define the simplest model of them all, the empty model, as follows
@@ -9,21 +9,20 @@ DocTestSetup = quote
 end
 ```
 ```julia
-julia
 @model begin
 
 end
 ```
-This creates a model with no parameters, no covariates, no dyamics, ..., nothing! To populate the model, we need to include one of the possible model blocks. The possible blocks are:
+This creates a model with no parameters, no covariates, no dynamics, ..., nothing! To populate the model, we need to include one of the possible model blocks. The possible blocks are:
 - `@param`, fixed effects specifications
 - `@random`, random effects specifications
 - `@covariates`, covariate names
 - `@pre`, pre-processing variables for the dynamic system and statistical specification
-- `@vars`, short-hand notation
+- `@vars`, shorthand notation
 - `@init`, initial conditions for the dynamic system
 - `@dynamics`, dynamics of the model
-- `@derived`, statistical modelling of dependent variables
-- `@observed`, model information to be stored in model solution
+- `@derived`, statistical modeling of dependent variables
+- `@observed`, model information to be stored in the model solution
 
 The definitions in these blocks are generally only available in the blocks further down the list.
 
@@ -85,7 +84,7 @@ PumasModel
   Observed: 
 ```
 
-where we have defined a seperate variable for population clearance and volume as well as the variance of a scalar (univariate) random effect. The same model could be written using vectors and matrix type domains using something like the following
+where we have defined a separate variable for population clearance and volume as well as the variance of a scalar (univariate) random effect. The same model could be written using vectors and matrix type domains using something like the following
 
 ```jldoctest; output = false
 @model begin
@@ -193,7 +192,7 @@ PumasModel
   Observed: 
 ```
 
-We see that we defined a variability parameter `ω²η` to parameterize the variance of the univariate `Normal` distribution of the η. We put a lower bound of `0.0001` because a variance *cannot* be negative, and a variance of exactly zero would lead to a degenerate distribution. We always advise to put bounds on variables whenever posible. We also advise using the unicode `²` (\^2 + Tab) to show that it's a variance, though this is optional. The `Normal` distribution Distributions.jl requires two positional arguments: the mean (here: 0) and the standard deviation (here: the square root of our variance). For more details type `?Normal` in the REPL. It is of course possible to have as many univariate random effects as you want:
+We see that we defined a variability parameter `ω²η` to parameterize the variance of the univariate `Normal` distribution of the η. We put a lower bound of `0.0001` because a variance *cannot* be negative, and a variance of exactly zero would lead to a degenerate distribution. We always advise putting bounds on variables whenever possible. We also advise using the unicode `²` (\^2 + Tab) to show that it's a variance, though this is optional. The `Normal` distribution Distributions.jl requires two positional arguments: the mean (here: 0) and the standard deviation (here: the square root of our variance). For more details type `?Normal` in the REPL. It is, of course, possible to have as many univariate random effects as you want:
 
 ```jldoctest; output = false
 @model begin
@@ -289,7 +288,7 @@ PumasModel
   Observed: 
 ```
 
-For cases where you have several random effects with the exact same distribution, such as between-occation-variability (BOV), it is convenient to construct a single vector η that has diagonal variance-covariance structure with identical variances down the diagonal. This can be achieved using a special constructor that takes in the dimension and the standard deviation
+For cases where you have several random effects with the exact same distribution, such as between-occasion-variability (BOV), it is convenient to construct a single vector η that has diagonal variance-covariance structure with identical variances down the diagonal. This can be achieved using a special constructor that takes in the dimension and the standard deviation
 
 ```jldoctest; output = false
 @model begin
@@ -312,7 +311,7 @@ PumasModel
   Observed: 
 ```
 
-You could use four scalar `η`'s as shown above, but for BOV it is useful to encode the occations using integers 1, 2, 3, ..., N and simply index into `η` using `η[OCC]` where `OCC` is the occation covariate.
+You could use four scalar `η`'s as shown above, but for BOV it is useful to encode the occasions using integers 1, 2, 3, ..., N and simply index into `η` using `η[OCC]` where `OCC` is the occasion covariate.
 
 ### `@covariates`
 The covariates in the model have to be specified in the `@covariates` block. This information is used to
@@ -392,12 +391,12 @@ time `t`. Let us see an example
 end
 ```
 
-We see that when we assign the right-hand side to `CL`, it involves weight, age and occation counter, OCC. These might all be recorded as time-varying, especially the last one. The first line of `@pre` then means that whenever `CL` is referenced in the dynamic model or in the statistical model it will have been calculated with the covariates evaluated at the appropriate time. The next line that defines volume of distribution, `V`, shows this by explicitly using `t` (a reserved keyword) to model `V` as something that varies with time.
+We see that when we assign the right-hand side to `CL`, it involves weight, age and occasion counter, OCC. These might all be recorded as time-varying, especially the last one. The first line of `@pre` then means that whenever `CL` is referenced in the dynamic model or in the statistical model it will have been calculated with the covariates evaluated at the appropriate time. The next line that defines the volume of distribution, `V`, shows this by explicitly using `t` (a reserved keyword) to model `V` as something that varies with time.
 
 The last line we see is special as it uses what is called a dose control parameter (DCP). The line sets bioavailability for a `Depot` compartment to a parameter in our model `θbioav`, and bioavailability of another compartment `Central` to a fixed value of 0.4. If a compartment is not mentioned in the `NamedTuple` it will be set to 1.0. Other DCPs are: `lags`, `rate`, and `duration`. 
 
 !!! tip
-    The dose control parameters are entered as `NamedTuple`s. If a DCP is just set for one compartment to have the rest default to 1.0 it is a common mistake to write `rate = (Depot=θ)` instead of `rate = (Depot=θbioav,)`. Notice the trailing `,` in the second expression which is required to construct a `NamedTuple` in Julia.
+    The dose control parameters are entered as `NamedTuple`s. If a DCP is just set for one-compartment to have the rest default to 1.0 it is a common mistake to write `rate = (Depot=θ)` instead of `rate = (Depot=θbioav,)`. Notice the trailing `,` in the second expression which is required to construct a `NamedTuple` in Julia.
 
 ### `@vars`: Short-hand notation
 Suppose we have a model with a dynamic variable `Central` and a volume of dispersion `V`. You can define short-hand notation for the implied plasma concentration to be used elsewhere in the model in `@vars`: 
@@ -479,9 +478,9 @@ Variable aliases defined in the @vars are accessible in this block. Additionally
 Note that any Julia function defined outside of the @model block can be invoked in the @dynamics block.
 
 
-### `@derived`: Statistical modelling of observed variables
+### `@derived`: Statistical modeling of observed variables
 This block is used to specify the assumed distributions of observed variables that are derived from
-the blocks above. All variables are referred to a the subject's observation times which means they are vectors.
+the blocks above. All variables are referred to as the subject's observation times which means they are vectors.
 This means we have to use "dot calls" on functions of dynamic variables, parameters, variables from `@pre`, etc.
 
 ```julia
@@ -553,7 +552,7 @@ which will cause functions like `simobs` to store the simulated plasma concentra
 
 The `PumasModel` function-based interface for defining an NLME model is the most
 expressive mechanism for using Pumas and directly utilizes Julia types and
-functions. In fact, under the hood the `@model` DSL works by building an
+functions. In fact, under the hood, the `@model` DSL works by building an
 expression for the `PumasModel` interface! A `PumasModel` has the constructor:
 
 ```julia
@@ -592,7 +591,7 @@ ParamSet{NamedTuple{(:θ, :Ω, :Σ),Tuple{VectorDomain{Array{Float64,1},Array{Tr
 
 ### The `random` Function
 
-The `random(param)` function is a function on the parameters. It takes in the
+The `random(param)` function is a function of the parameters. It takes in the
 values from the `param` input named tuple and outputs a `ParamSet` for the
 random effects. For example:
 
