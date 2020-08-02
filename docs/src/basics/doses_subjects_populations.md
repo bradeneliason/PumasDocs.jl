@@ -304,14 +304,17 @@ Following is the list of checks applied by `read_pumas` function with examples.
 
 9. Steady-state column (`ss`) requires `ii` column
 
-   ```julia
-   df = DataFrame(id=[1,1], time=[0,1], amt=[10,0],
-       				cmt=[1,2], evid=[1,0], dv=[10,8],
-                   	age=[45,45], sex = ["M","M"])
-   read_pumas(df, observations=[:dv], covariates=[:age, :sex])
-   ```
+  ```julia
+  df = DataFrame(id=[1,1], time=[0,1], amt=[10,0], ss=[1, 0],
+            cmt=[1,2], dv=[missing,8], age=[45,45],
+            sex = ["M","M"], evid=[1,0])
+  read_pumas(df, observations=[:dv], covariates=[:age, :sex])
+  ```
 
-   
+  ```julia
+  ERROR: PumasDataError: your dataset does not have ii which is a required column for steady state dosing.
+  ```
+
 
 10. Steady-state dosing requires `ii` > 0
 
@@ -320,24 +323,29 @@ Following is the list of checks applied by `read_pumas` function with examples.
     If `rate` column is not provided it is assumed to be zero.
 
     ```julia
-    df = DataFrame(id=[1,1], time=[0,1], amt=[10,0], ss=[1, 0],
-        				cmt=[1,2], dv=[missing,8],
-                    	age=[45,45], sex = ["M","M"], evid=[1,0])
+    df = DataFrame(id=[1,1], time=[0,1], amt=[10,0], ss=[1, 0], ii=[0,0],
+                        cmt=[1,2], dv=[missing,8],
+                        age=[45,45], sex = ["M","M"], evid=[1,0])
     read_pumas(df, observations=[:dv], covariates=[:age, :sex])
     ```
 
     ```julia
-    PumasDataError: your dataset does not have ii which is a required column for steady-state dosing.
+    ERROR: PumasDataError: [Subject id: 1, row = 1, col = ii] for steady-state dosing the value of the interval column ii must be non-zero but was 0
     ```
-
-    
 
 11. Steady-state infusion requires `ii` = 0
 
     Incase of steady-state infusion the value of the interval column `ii` must be zero
 
     ```julia
-    
+    df = DataFrame(id=[1,1], time=[0,1], amt=[0,0], ss=[1, 0], rate=[2, 0], ii=[1, 0],
+                cmt=[1,2], dv=[missing,8],
+                      age=[45,45], sex = ["M","M"], evid=[1,0])
+    read_pumas(df, observations=[:dv], covariates=[:age, :sex])
+    ```
+
+    ```julia
+    ERROR: PumasDataError: [Subject id: 1, row = 1, col = ii] for steady-state infusion the value of the interval column ii must be zero but was 1
     ```
 
 12. Steady-state infusion requires `addl` = 0
@@ -345,10 +353,15 @@ Following is the list of checks applied by `read_pumas` function with examples.
     Incase of steady-state infusion the value of the additional dose column `addl` must be zero
 
     ```julia
-    
+    df = DataFrame(id=[1,1], time=[0,1], amt=[0,0], ss=[1, 0], rate=[2, 0], ii=[0, 0],
+                addl=[5, 0], cmt=[1,2], dv=[missing,8],
+                      age=[45,45], sex = ["M","M"], evid=[1,0])
+    read_pumas(df, observations=[:dv], covariates=[:age, :sex])
     ```
 
-    
+    ```julia
+    ERROR: PumasDataError: [Subject id: 1, row = 1, col = addl] for steady-state infusion the value of the additional dose column addl must be zero but was 5
+    ```
 
 13. `addl` column is present but `ii` is not
 
