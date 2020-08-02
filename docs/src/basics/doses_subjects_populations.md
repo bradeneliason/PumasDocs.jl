@@ -162,3 +162,281 @@ The arguments are as follows:
 
 The other arguments are optional (keyword arguments) and allow changing the column names from their
 default.
+
+### PumasNDF Checks
+`read_pumas` function does some general checks on the provided data and informs the user about inconsistency in the data and throw an error in case of invalid data reporting row number and column name causing the problem so that user can look and resolve the issue.
+
+Following is the list of checks applied by `read_pumas` function with examples.
+
+1. Necessary columns in case of event and non-event data
+
+   when the `event_data` is `true`, the dataset must contain `id, time, amt, and observations` columns.
+
+   In case of `event_data = false`, only requirement is  `id`.
+
+   ```julia
+   df = DataFrame(id=[1,1], time=[0,1], cmt=[1,2], dv=[missing,8],
+                   	age=[45,45], sex = ["M","M"], evid=[1,0])
+   read_pumas(df, observations=[:dv], covariates=[:age, :sex], event_data=true)
+   ```
+
+   ```julia
+   ┌ Info: The CSV file has keys: [:id, :time, :cmt, :dv, :age, :sex, :evid]
+   └ @ Pumas /home/shubham00/.julia/dev/Pumas/src/data_parsing/io.jl:1023
+   PumasDataError: The CSV file must have: `id, time, amt, and observations` when `event_data` is `true`
+   ```
+
+   
+
+2. No `evid` column but `event_data` argument is set to `true`
+
+   When provided dataset doesn't have `evid` column but `event_data=true` is passed to `read_pumas` function.
+
+   ```julia
+   df = DataFrame(id=[1,1], time=[0,1], amt=[10,0], cmt=[1,2], dv=[missing,8],
+                   	age=[45,45], sex = ["M","M"])
+   read_pumas(df, observations=[:dv], covariates=[:age, :sex], event_data=true)
+   ```
+
+   ```julia
+   ┌ Warning: Your dataset has dose event but it hasn't an evid column. We are adding 1 for dosing rows and 0 for others in evid column. If this is not the case, please add your evid column.
+   ```
+
+   
+
+3. Non-numeric/string entries in an observation column
+
+   If there are non-numeric or string entries in an observation column, `read_pumas` throws an error and reports row(s) and column(s) having this issue.
+
+   ```julia
+   df = DataFrame(id=[1,1], time=[0,1], amt=[10,0],
+       				cmt=[1,2], dv=[missing,"k@"],
+                   	age=[45,45], sex = ["M","M"], evid=[1,0])
+   read_pumas(df, observations=[:dv], covariates=[:age, :sex])
+   ```
+
+   ```julia
+   PumasDataError: [Subject id: [1], row = [2], col = dv]  We expect the dv column to be of numeric type.
+   These are the unique non-numeric values present in the column dv: ("k@",)
+   ```
+
+   
+
+4. Non-numeric/string entries in `amt`column
+
+   This check is similar to above.
+
+   ```julia
+   df = DataFrame(id=[1,1], time=[0,1], amt=["k8",0],
+       				cmt=[1,2], dv=[missing,8],
+                   	age=[45,45], sex = ["M","M"], evid=[1,0])
+   read_pumas(df, observations=[:dv], covariates=[:age, :sex])
+   ```
+
+   ```julia
+   PumasDataError: [Subject id: [1], row = [1], col = amt]  We expect the amt column to be of numeric type.
+   These are the unique non-numeric values present in the column amt: ("k8",)
+   ```
+
+   
+
+5. `cmt` must be a positive integer or valid string/symbol for non-zero `evid` data record
+
+   `cmt` column should contain positive numbers or string/symbol identifiers to compartment being dosed.
+
+   ```julia
+   df = DataFrame(id=[1,1], time=[0,1], amt=[10,0], cmt=[-1,2], dv=[missing,8],
+                   	age=[45,45], sex = ["M","M"], evid=[1,0])
+   read_pumas(df, observations=[:dv], covariates=[:age, :sex])
+   ```
+
+   ```julia
+   PumasDataError: [Subject id: 1, row = 1, col = cmt] cmt column should be positive
+   ```
+
+   
+
+6. `amt` can only be `missing` or zero when `evid = 0`
+
+   ```julia
+   df = DataFrame(id=[1,1], time=[0,1], amt=[10,5], cmt=[1,2], dv=[missing,8],
+                   	age=[45,45], sex = ["M","M"], evid=[1,0])
+   read_pumas(df, observations=[:dv], covariates=[:age, :sex])
+   ```
+
+   ```julia
+   PumasDataError: [Subject id: 1, row = 2, col = evid] amt can only be missing or zero when evid is zero
+   ```
+
+   
+
+7. `amt` can only be positive or zero when `evid = 1`
+
+   ```julia
+   df = DataFrame(id=[1,1], time=[0,1], amt=[-10,0],
+       				cmt=[1,2], evid=[1,0], dv=[10,8],
+                   	age=[45,45], sex = ["M","M"])
+   read_pumas(df, observations=[:dv], covariates=[:age, :sex])
+   ```
+
+   ```julia
+   PumasDataError: [Subject id: 1, row = 1, col = evid] amt can only be positive or zero when evid is one
+   ```
+
+   
+
+8. Observation (`dv`) at the time of dose
+
+   Observation should be `missing` at the time of dose (or when `amt` > 0)
+
+   ```julia
+   df = DataFrame(id=[1,1], time=[0,1], amt=[10,0],
+       				cmt=[1,2], evid=[1,0], dv=[10,8],
+                   	age=[45,45], sex = ["M","M"])
+   read_pumas(df, observations=[:dv], covariates=[:age, :sex])
+   ```
+
+   ```julia
+   PumasDataError: [Subject id: 1, row = 1, col = dv] an observation is present at the time of dose in column dv. It is recommended and required in Pumas to have a blank record (`missing`) at the time of dosing, i.e. when `amt` is positive
+   ```
+
+   
+
+9. Steady-state column (`ss`) requires `ii` column
+
+   ```julia
+   df = DataFrame(id=[1,1], time=[0,1], amt=[10,0],
+       				cmt=[1,2], evid=[1,0], dv=[10,8],
+                   	age=[45,45], sex = ["M","M"])
+   read_pumas(df, observations=[:dv], covariates=[:age, :sex])
+   ```
+
+   
+
+10. Steady-state dosing requires `ii` > 0
+
+     Incase of steady-state dosing the value of the interval column `ii` must be non-zero
+
+    If `rate` column is not provided it is assumed to be zero.
+
+    ```julia
+    df = DataFrame(id=[1,1], time=[0,1], amt=[10,0], ss=[1, 0],
+        				cmt=[1,2], dv=[missing,8],
+                    	age=[45,45], sex = ["M","M"], evid=[1,0])
+    read_pumas(df, observations=[:dv], covariates=[:age, :sex])
+    ```
+
+    ```julia
+    PumasDataError: your dataset does not have ii which is a required column for steady-state dosing.
+    ```
+
+    
+
+11. Steady-state infusion requires `ii` = 0
+
+    Incase of steady-state infusion the value of the interval column `ii` must be zero
+
+    ```julia
+    
+    ```
+
+12. Steady-state infusion requires `addl` = 0
+
+    Incase of steady-state infusion the value of the additional dose column `addl` must be zero
+
+    ```julia
+    
+    ```
+
+    
+
+13. `addl` column is present but `ii` is not
+
+    ```julia
+    df = DataFrame(id=[1,1], time=[0,1], amt=[10,0], addl=[5,0],
+        				cmt=[1,2], evid=[1,0], dv=[missing,8],
+                    	age=[45,45], sex = ["M","M"])
+    read_pumas(df, observations=[:dv], covariates=[:age, :sex])
+    ```
+
+    ```julia
+    PumasDataError: your dataset does not have ii which is a required column when addl is specified.
+    ```
+
+    
+
+14. `ii` must be positive for `addl > 0`
+
+    ```julia
+    df = DataFrame(id=[1,1], time=[0,1], amt=[10,0], addl=[5,0], ii=[0,0]
+        				cmt=["Depot","Central"], evid=[1,0], dv=[missing,8],
+                    	age=[45,45], sex = ["M","M"])
+    read_pumas(df, observations=[:dv], covariates=[:age, :sex])
+    ```
+
+    ```julia
+    PumasDataError: [Subject id: 1, row = 1, col = ii]  ii must be positive for addl > 0
+    ```
+
+    
+
+15. `addl` must be positive for `ii > 0`
+
+    ```julia
+    df = DataFrame(id=[1,1], time=[0,1], amt=[10,0], addl=[0,0], ii=[12,0],
+        				cmt=["Depot","Central"], evid=[1,0], dv=[missing,8],
+                    	age=[45,45], sex = ["M","M"])
+    read_pumas(df, observations=[:dv], covariates=[:age, :sex])
+    ```
+
+    ```julia
+    PumasDataError: [Subject id: 1, row = 1, col = addl]  addl must be positive for ii > 0
+    ```
+
+    
+
+16. `ii` can only be missing or zero when `evid = 0`
+
+    ```julia
+    df = DataFrame(id=[1,1], time=[0,1], amt=[10,0], addl=[5,2], ii=[12,4],
+        				cmt=["Depot","Central"], evid=[1,0], dv=[missing,8],
+                    	age=[45,45], sex = ["M","M"])
+    read_pumas(df, observations=[:dv], covariates=[:age, :sex])
+    ```
+
+    ```julia
+    PumasDataError: [Subject id: 1, row = 2, col = evid]  ii can only be missing or zero when evid is zero
+    ```
+
+    
+
+17. `addl` can only be positive or zero when `evid = 1`
+
+    ```julia
+    df = DataFrame(id=[1,1], time=[0,1], amt=[10,0], addl=[-10,0], ii=[12,0],
+        				cmt=["Depot","Central"], evid=[1,0], dv=[missing,8],
+                    	age=[45,45], sex = ["M","M"])
+    read_pumas(df, observations=[:dv], covariates=[:age, :sex])
+    ```
+
+    ```julia
+    PumasDataError: [Subject id: 1, row = 1, col = evid]  addl can only be positive or zero when evid is one
+    ```
+
+    
+
+18. `evid` must be nonzero when `amt` > 0 or `addl` and `ii` are positive
+
+    When `amt` is positive, `evid` must be non-zero as `evid = 0 ` indicates an observation record.
+
+    ```julia
+    df = DataFrame(id=[1,1], time=[0,1], amt=[10,0], addl=[5,0], ii=[12,0],
+        				cmt=["Depot","Central"], evid=[0,0], dv=[missing,8],
+                    	age=[45,45], sex = ["M","M"])
+    read_pumas(df, observations=[:dv], covariates=[:age, :sex])
+    ```
+
+    ```julia
+    PumasDataError: [Subject id: 1, row = 1, col = evid] amt can only be missing or zero when evid is zero
+    ```
+    
