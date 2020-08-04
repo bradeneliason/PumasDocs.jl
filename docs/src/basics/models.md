@@ -26,9 +26,11 @@ This creates a model with no parameters, no covariates, no dynamics, ..., nothin
 
 The definitions in these blocks are generally only available in the blocks further down the list.
 
-### `@param`: Fixed effects
-The fixed effects, also called population parameters, are specified in the `@param` block. Parameters
-are defined by an `in` (or ∈, written via \in) statement that connects a parameter name and a domain.
+### `@param`: Population parameters
+The population parameters are specified in the `@param` block. Variables that enter the model
+can either be defined in terms of the domain they come from or their distribution if they're
+random variables. Variables defined by their domain are specified by an `in` (or ∈, written via \in) statement that connects a parameter name and a domain, and random variables are specified by an `~` statement that connects a name with a distribution.
+
 For example, to specify θ as a real scalar in a model, one would write:
 
 ```jldoctest
@@ -174,17 +176,17 @@ The parameters are defined by a `~` (read: distributed as) expression:
 ```jldoctest
 @model begin
   @param begin
-    ω²η ∈ RealDomain(lower=0.0001)
+    ωη ∈ RealDomain(lower=0.0001)
   end
   @random begin
-    η ~ Normal(0, sqrt(ω²η))
+    η ~ Normal(0, ωη)
   end
 end
 
 # output
 
 PumasModel
-  Parameters: ω²η
+  Parameters: ωη
   Random effects: η
   Covariates: 
   Dynamical variables: 
@@ -192,24 +194,24 @@ PumasModel
   Observed: 
 ```
 
-We see that we defined a variability parameter `ω²η` to parameterize the variance of the univariate `Normal` distribution of the η. We put a lower bound of `0.0001` because a variance *cannot* be negative, and a variance of exactly zero would lead to a degenerate distribution. We always advise putting bounds on variables whenever possible. We also advise using the unicode `²` (\^2 + Tab) to show that it's a variance, though this is optional. The `Normal` distribution Distributions.jl requires two positional arguments: the mean (here: 0) and the standard deviation (here: the square root of our variance). For more details type `?Normal` in the REPL. It is, of course, possible to have as many univariate random effects as you want:
+We see that we defined a variability parameter `ωη` to parameterize the standard deviation of the univariate `Normal` distribution of the η. We put a lower bound of `0.0001` because a standard deviation *cannot* be negative, and a standard deviation of exactly zero would lead to a degenerate distribution. We always advise putting bounds on variables whenever possible. We also advise using the unicode `²` (\^2 + Tab) to show that it's a variance, though this is optional. The `Normal` distribution Distributions.jl requires two positional arguments: the mean (here: 0) and the standard deviation (here: the square root of our variance). For more details type `?Normal` in the REPL. It is, of course, possible to have as many univariate random effects as you want:
 
 ```jldoctest; output = false
 @model begin
   @param begin
-    Ωη ∈ VectorDomain(3, lower=0.0001)
+    ωη ∈ VectorDomain(3, lower=0.0001)
   end
   @random begin
-    η1 ~ Normal(0, sqrt(Ωη[1]))
-    η2 ~ Normal(0, sqrt(Ωη[2]))
-    η3 ~ Normal(0, sqrt(Ωη[3]))
+    η1 ~ Normal(0, sqrt(ωη[1]))
+    η2 ~ Normal(0, sqrt(ωη[2]))
+    η3 ~ Normal(0, sqrt(ωη[3]))
   end
 end
 
 # output
 
 PumasModel
-  Parameters: Ωη
+  Parameters: ωη
   Random effects: η1, η2, η3
   Covariates: 
   Dynamical variables: 
@@ -217,23 +219,23 @@ PumasModel
   Observed: 
 ```
 
-Notice the use of indexing into the `Ωη` parameter that is now a vector. Other ways of 
+Notice the use of indexing into the `ωη` parameter that is now a vector. Other ways of 
 parameterizing random effects include vector (multivariate) distributions:
 
 ```jldoctest; output = false
 @model begin
   @param begin
-    Ωη ∈ VectorDomain(3, lower=0.0001)
+    ωη ∈ VectorDomain(3, lower=0.0001)
   end
   @random begin
-    η ~ MvNormal(sqrt.(Ωη))
+    η ~ MvNormal(sqrt.(ωη))
   end
 end
 
 # output
 
 PumasModel
-  Parameters: Ωη
+  Parameters: ωη
   Random effects: η
   Covariates: 
   Dynamical variables: 
@@ -313,10 +315,31 @@ PumasModel
 
 You could use four scalar `η`'s as shown above, but for BOV it is useful to encode the occasions using integers 1, 2, 3, ..., N and simply index into `η` using `η[OCC]` where `OCC` is the occasion covariate.
 
+!!! note
+   In the context of estimation using the `fit` function all variables must come from a univariate or multivariate normal distribution. Other distributions can be specified when solving or simulating the model.
+
 ### `@covariates`
 The covariates in the model have to be specified in the `@covariates` block. This information is used to
 generate efficient code for expanding covariate information from each subject when solving the model or
-evaluating likelihood contributions from observations. The format is simply to either use a block
+evaluating likelihood contributions from observations. The format is simply to either use a one-liner
+
+```jldoctest
+@model begin
+  @covariates weight age OCC
+end
+
+# output
+
+PumasModel
+  Parameters: 
+  Random effects: 
+  Covariates: weight, age, OCC
+  Dynamical variables: 
+  Derived: 
+  Observed: 
+```
+   
+or as a block
 
 ```jldoctest
 @model begin
@@ -337,25 +360,8 @@ PumasModel
   Derived: 
   Observed: 
 ```
-   
-or a one-liner
 
-```jldoctest
-@model begin
-  @covariates weight age OCC
-end
-
-# output
-
-PumasModel
-  Parameters: 
-  Random effects: 
-  Covariates: weight, age, OCC
-  Dynamical variables: 
-  Derived: 
-  Observed: 
-```
-
+The block form is mostly useful if there a lot of covariates. Otherwise, the one-liner is preferred.
 ### `@pre`: Pre-processing of input to dynamics and derived
 
 Before we move to the actual dynamics of the model (if there are any) and the statistical model
@@ -393,10 +399,28 @@ end
 
 We see that when we assign the right-hand side to `CL`, it involves weight, age and occasion counter, OCC. These might all be recorded as time-varying, especially the last one. The first line of `@pre` then means that whenever `CL` is referenced in the dynamic model or in the statistical model it will have been calculated with the covariates evaluated at the appropriate time. The next line that defines the volume of distribution, `V`, shows this by explicitly using `t` (a reserved keyword) to model `V` as something that varies with time.
 
-The last line we see is special as it uses what is called a dose control parameter (DCP). The line sets bioavailability for a `Depot` compartment to a parameter in our model `θbioav`, and bioavailability of another compartment `Central` to a fixed value of 0.4. If a compartment is not mentioned in the `NamedTuple` it will be set to 1.0. Other DCPs are: `lags`, `rate`, and `duration`. 
+The last line we see is special as it uses what is called a dose control parameter (DCP). The line sets bioavailability for a `Depot` compartment to a parameter in our model `θbioav`, and bioavailability of another compartment `Central` to a fixed value of 0.4. If a compartment is not mentioned in the `NamedTuple` it will be set to 1.0. Other DCPs are: `lags`, `rate`, and `duration`. For more information on these parameters, see the [Dosing Control Parameters (DCP)](@ref) page.
 
 !!! tip
-    The dose control parameters are entered as `NamedTuple`s. If a DCP is just set for one-compartment to have the rest default to 1.0 it is a common mistake to write `rate = (Depot=θ)` instead of `rate = (Depot=θbioav,)`. Notice the trailing `,` in the second expression which is required to construct a `NamedTuple` in Julia.
+    The dose control parameters are entered as `NamedTuple`s. If a DCP is just set for one-compartment to have the rest default to 1.0 it is a common mistake to write `rate = (Depot=θ)` instead of `rate = (Depot=θbioav,)`. Notice the trailing `,` in the second expression which is required to construct a `NamedTuple` in Julia. 
+
+!!! tip
+    Only variables explicitly defined in `pre` can be used in the `@dynamics` block below. This means that even parameters that require no further pre-processing before they're using in the model will have to be assigned a name in `@pre`. For example, the following example is the appropriate way to specify a parameter `V` that is going to be used in the model:
+
+    ```julia
+      @model begin
+        @param begin
+          θV ∈ RealDomain(lower=0.0001, upper=91.0)
+        end
+
+        @pre begin
+          V = θV
+        end
+      end
+    ```
+    
+    If you ommit the definition of `V` and try to use `θV` directly in the model, you will get an error.
+
 
 ### `@vars`: Short-hand notation
 Suppose we have a model with a dynamic variable `Central` and a volume of dispersion `V`. You can define short-hand notation for the implied plasma concentration to be used elsewhere in the model in `@vars`: 
@@ -432,7 +456,7 @@ Note that the special value := can be used to define intermediate statements tha
 ### `@dynamics`: The dynamic model
 
 
-The @dynamics block defines the nonlinear function from the parameters to the derived variables via a dynamical (differential equation) model. It can currently be specified either by an analytical solution type, an ordinary differential equation (ODE) or a combination of the two (for more types of differential equations, please see the function-based interface).
+The `@dynamics` block defines the nonlinear function from the parameters to the derived variables via a dynamical (differential equation) model. It can currently be specified either by an analytical solution type, an ordinary differential equation (ODE) or a combination of the two (for more types of differential equations, please see the function-based interface).
 
 The analytical solutions are defined in the [Dynamical Problem Types](@ref) page and can be invoked via the name. For example,
 
@@ -475,7 +499,7 @@ end
 
 Variable aliases defined in the @vars are accessible in this block. Additionally, the variable t is reserved for the solver time if you want to use something like `sin(t)` in your model formulation.
 
-Note that any Julia function defined outside of the @model block can be invoked in the @dynamics block.
+Note that any Julia function defined outside of the @model block can be invoked in the `@dynamics` block.
 
 
 ### `@derived`: Statistical modeling of observed variables
@@ -488,7 +512,7 @@ This means we have to use "dot calls" on functions of dynamic variables, paramet
   @param begin
     θCL ∈ RealDomain(lower=0.001, upper=10.0)
     θVc ∈ RealDomain(lower=0.001, upper=10.0)
-    ω²η ∈ RealDomain(lower=0.001, upper=20.0)
+    ωη ∈ RealDomain(lower=0.001, upper=20.0)
   end
 
   @pre begin
@@ -502,7 +526,7 @@ This means we have to use "dot calls" on functions of dynamic variables, paramet
 
   @derived begin
     cp := @. Central/Vc
-    dv ~ @. Normal(cp, sqrt(ω²η))
+    dv ~ @. Normal(cp, ωη)
   end
 end
 ```
@@ -511,11 +535,40 @@ We define `cp` (concentration in plasma) using `:=` which means that the variabl
 
 ```julia
 @derived begin
-  dv ~ @. Normal(Central/Vc, sqrt(ω²η))
+  dv ~ @. Normal(Central/Vc, ωη)
 end
 ```
 
-This will be slightly faster. However, sometimes it might be helpful to use `:=` for intermediary calculations in complicated expressions.
+This will be slightly faster. However, sometimes it might be helpful to use `:=` for intermediary calculations in complicated expressions. An example is the proportional error model:
+
+```julia
+```julia
+@model begin
+  @param begin
+    θCL ∈ RealDomain(lower=0.001, upper=10.0)
+    θVc ∈ RealDomain(lower=0.001, upper=10.0)
+    ωη_add ∈ RealDomain(lower=0.001, upper=20.0)
+    ωη_prop ∈ RealDomain(lower=0.001, upper=20.0)
+  end
+
+  @pre begin
+    CL = θCL
+    Vc = θVc
+  end
+
+  @dynamics begin
+    Central' = -CL/Vc*Central
+  end
+
+  @derived begin
+    cp := @. Central/Vc
+    dv ~ @. Normal(cp, ωη_add + abs(cp)*(ωη_add))
+  end
+end
+```
+
+Where we take advantage of the `:=` line to only calculate the concentration once.
+
 
 ### `@observed`: Sampled observations
 
@@ -622,13 +675,6 @@ end
 
 Such that it spits out something that can be called with a point in time `t` and returns the pre-processed
 variables at that time. Notice that the covariates are found as a function of `t` in the `subject.covariates` field.
-
-#### Dosing Control Parameters
-
-Special parameters in the return of the `pre` function, such as `lag`, are
-used to control the internal event handling (dosing) system. For more
-information on these parameters, see the [Dosing Control Parameters (DCP)](@ref) page.
-If they are left out of the returned `NamedTupled` they assume their default values.
 
 ### The `init` Function
 
