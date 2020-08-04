@@ -13,6 +13,7 @@ describing a dose. The definition of the values are as follows:
 
 - `amt`: the amount of the dose. This is the only required value.
 - `time`: the time at which the dose is given. Defaults to 0.
+#TODO - check `evid` details below
 - `evid`: the event id. `1` specifies a normal event. `3` means it's a reset event,
   meaning that the value of the dynamical variable is reset to the `amt` at the
   dosing event. If `4`, then the value is reset (to the steady state), and then
@@ -186,7 +187,7 @@ Following is the list of checks applied by `read_pumas` function with examples.
    PumasDataError: The CSV file must have: `id, time, amt, and observations` when `event_data` is `true`
    ```
 
-   
+
 
 2. No `evid` column but `event_data` argument is set to `true`
 
@@ -202,7 +203,7 @@ Following is the list of checks applied by `read_pumas` function with examples.
    ┌ Warning: Your dataset has dose event but it hasn't an evid column. We are adding 1 for dosing rows and 0 for others in evid column. If this is not the case, please add your evid column.
    ```
 
-   
+
 
 3. Non-numeric/string entries in an observation column
 
@@ -220,7 +221,7 @@ Following is the list of checks applied by `read_pumas` function with examples.
    These are the unique non-numeric values present in the column dv: ("k@",)
    ```
 
-   
+
 
 4. Non-numeric/string entries in `amt`column
 
@@ -238,7 +239,7 @@ Following is the list of checks applied by `read_pumas` function with examples.
    These are the unique non-numeric values present in the column amt: ("k8",)
    ```
 
-   
+
 
 5. `cmt` must be a positive integer or valid string/symbol for non-zero `evid` data record
 
@@ -254,7 +255,7 @@ Following is the list of checks applied by `read_pumas` function with examples.
    PumasDataError: [Subject id: 1, row = 1, col = cmt] cmt column should be positive
    ```
 
-   
+
 
 6. `amt` can only be `missing` or zero when `evid = 0`
 
@@ -268,7 +269,7 @@ Following is the list of checks applied by `read_pumas` function with examples.
    PumasDataError: [Subject id: 1, row = 2, col = evid] amt can only be missing or zero when evid is zero
    ```
 
-   
+
 
 7. `amt` can only be positive or zero when `evid = 1`
 
@@ -283,7 +284,7 @@ Following is the list of checks applied by `read_pumas` function with examples.
    PumasDataError: [Subject id: 1, row = 1, col = evid] amt can only be positive or zero when evid is one
    ```
 
-   
+
 
 8. Observation (`dv`) at the time of dose
 
@@ -300,7 +301,7 @@ Following is the list of checks applied by `read_pumas` function with examples.
    PumasDataError: [Subject id: 1, row = 1, col = dv] an observation is present at the time of dose in column dv. It is recommended and required in Pumas to have a blank record (`missing`) at the time of dosing, i.e. when `amt` is positive
    ```
 
-   
+
 
 9. Steady-state column (`ss`) requires `ii` column
 
@@ -376,7 +377,7 @@ Following is the list of checks applied by `read_pumas` function with examples.
     PumasDataError: your dataset does not have ii which is a required column when addl is specified.
     ```
 
-    
+
 
 14. `ii` must be positive for `addl > 0`
 
@@ -391,7 +392,7 @@ Following is the list of checks applied by `read_pumas` function with examples.
     PumasDataError: [Subject id: 1, row = 1, col = ii]  ii must be positive for addl > 0
     ```
 
-    
+
 
 15. `addl` must be positive for `ii > 0`
 
@@ -406,7 +407,7 @@ Following is the list of checks applied by `read_pumas` function with examples.
     PumasDataError: [Subject id: 1, row = 1, col = addl]  addl must be positive for ii > 0
     ```
 
-    
+
 
 16. `ii` can only be missing or zero when `evid = 0`
 
@@ -421,7 +422,7 @@ Following is the list of checks applied by `read_pumas` function with examples.
     PumasDataError: [Subject id: 1, row = 2, col = evid]  ii can only be missing or zero when evid is zero
     ```
 
-    
+
 
 17. `addl` can only be positive or zero when `evid = 1`
 
@@ -436,7 +437,7 @@ Following is the list of checks applied by `read_pumas` function with examples.
     PumasDataError: [Subject id: 1, row = 1, col = evid]  addl can only be positive or zero when evid is one
     ```
 
-    
+
 
 18. `evid` must be nonzero when `amt` > 0 or `addl` and `ii` are positive
 
@@ -452,4 +453,3 @@ Following is the list of checks applied by `read_pumas` function with examples.
     ```julia
     PumasDataError: [Subject id: 1, row = 1, col = evid] amt can only be missing or zero when evid is zero
     ```
-    
