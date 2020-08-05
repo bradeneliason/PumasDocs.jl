@@ -38,39 +38,42 @@ describing a dose. The definition of the values are as follows:
 A `Subject` can be constructed using the following constructor:
 
 ```julia
-Subject(;id = 1,
-         obs = nothing,
-         cvs = nothing,
-         evs = Event[],
-         time = obs isa AbstractDataFrame ? obs.time : nothing
-         )
+Subject(;id = "1",
+         observations = nothing,
+         events = Event[],
+         time = observations isa AbstractDataFrame ? observations.time : nothing,
+         event_data = true,
+         covariates::Union{Nothing, NamedTuple} = nothing,
+         covariates_time = observations isa AbstractDataFrame ? observations.time : nothing,
+         covariates_direction = :right)
 ```
 
 The definitions of the arguments are as follows:
 
 - `id` is the id of the subject. Defaults to `1`.
-- `obs` is a Julia type which holds the observational data. When using the
-  `@model` interface, this must be a `NamedTuple` whose names match those
+- `observations` is a Julia type which holds the observational data. When using the `@model` interface, this must be a `NamedTuple` whose names match those
   of the derived variables.
-- `cvs` are the covariates for the subject. It can be any Julia type when working
-  with the function-based interface, but must be a `NamedTuple` for the `@model`
-  interface. Defaults to `nothing`, meaning no covariates.
-- `evs` is a `DosageRegimen`. Defaults to an empty event list.
-- `time` is the list of times associated with the observations.
+- `events` is a `DosageRegimen`. Defaults to an empty event list.
+- `time` is the time when `observations` are measured
+- `event_data` is a boolean which defaults to `true` and triggers that the specified events adhere to the PumasNDF(@ref). When set to `false`, the checks for `PumasNDF` are turned off.
+- `covariates` are the covariates for the subject. It can be any Julia type when working with the function-based interface, but must be a `NamedTuple` for the `@model` interface. Defaults to `nothing`, meaning no covariates.
+- `covariates_time` - #TODO
+- `covariates_direction` - #TODO
 
 ### `DosageRegimen`
 
 The `DosageRegimen` type is a specification of a regimen. Its constructor is:
 
 ```julia
-DosageRegimen(amt;
-              time = 0,
-              cmt  = 1,
-              evid = 1,
-              ii   = zero.(time),
-              addl = 0,
-              rate = zero.(amt)./oneunit.(time),
-              ss   = 0)
+DosageRegimen(amt::Numeric;
+              time::Numeric = 0,
+              cmt::Union{Numeric,Symbol} = 1,
+              evid::Numeric = 1,
+              ii::Numeric = zero.(time),
+              addl::Numeric = 0,
+              rate::Numeric = zero.(amt)./oneunit.(time),
+              duration::Numeric = zero(amt)./oneunit.(time),
+              ss::Numeric = 0)
 ```
 
 Each of the values can either be `AbstractVector`s or scalars. All vectors must
@@ -94,6 +97,18 @@ dr = DosageRegimen(e1, e2, e3)
 
 The current `DosageRegimen` can be viewed in its tabular form using the
 `DataFrame` function: `DataFrame(dr)`.
+
+One can also combine `DosageRegimen` while including a time `offset`
+
+```julia
+DosageRegimen(regimen1::DosageRegimen, regimen2::DosageRegimen; offset)
+```
+
+Here the second `DosageRegimen` after an `offset` time from the first. e.g. The second regimen below will start 10 hours after the last dosage regimen is completed.
+
+```julia
+DosageRegimen(dr1, dr2, offset = 10)
+```
 
 ## The Population Constructor
 
