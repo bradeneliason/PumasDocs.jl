@@ -33,6 +33,9 @@ documentation:
                 versioninfo()'
     - julia --color=yes --project=docs/ -e 'using Pkg; Pkg.instantiate()'
     - julia --color=yes --project=docs/ docs/make.jl
+  artifacts:
+    paths:
+      - docs/build
   only:
   - master
   - tags
