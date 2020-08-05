@@ -1,15 +1,25 @@
 # Dosage Regimens, Subjects, and Populations
-
-The data is passed to a Pumas model via the `Population` type. A `Population` is
-a collection of `Subject`s. In this section we will specify the methods used
-for defining `Subject`s and `Population`s. These types can either be defined
-programmatically using the `Subject` and `Population` constructors on Julia types
-or by using the Pumas NLME Data format (named PumasNDF).
+```@meta
+DocTestSetup = quote
+using Pumas
+end
+```
+In Pumas, subjects are represented by the `Subject` type and collections of
+subjects are represented as `Vector`s of `Subject`s aliased `Population`. Subjects
+are defined by their identifier, observations, covariates, and events. In this
+section we will specify the methods used for defining `Subject`s programatically
+or using the `read_pumas` function that reads in data that follows the PumasNDF data
+format. Before we look at `Subject`s, we will take a look at how to define events
+as represented by the `DosageRegimen` type.
 
 ## Dosage Regimen Terminology
 
-Both the `DosageRegimen` and the `PumasNDF` utilize the same terminology for
-describing a dose. The definition of the values are as follows:
+When subjects are subjected to treatment it is represented by an event in Pumas.
+Administraion of a drug is represented by a `DosageRegimen` that describes the
+amount, type, frequency and route. `DosageRegimen`s can either be constructed
+programatically using the `DosageRegimen` constructor or from a data source in
+the `PumasNDF` format using `read_pumas`. The names of the inputs are the same
+inpedendent of how the `DosageRegimen` is constructed. The definition of the values are as follows:
 
 - `amt`: the amount of the dose. This is the only required value.
 - `time`: the time at which the dose is given. Defaults to 0.
@@ -31,6 +41,109 @@ describing a dose. The definition of the values are as follows:
   state dose. 1 indicates that the dose is a steady state dose. 2 indicates that
   it is a steady state dose that is added to the previous amount. The default
   is 0.
+
+This specification leads to the following default constructor for the `DosageRegimen` type
+
+```julia
+DosageRegimen(amt;
+              time = 0,
+              cmt  = 1,
+              evid = 1,
+              ii   = zero.(time),
+              addl = 0,
+              rate = zero.(amt)./oneunit.(time),
+              ss   = 0)
+```
+
+Each of the values can either be or scalars. All vectors must
+be of the same length, and the elementwise combinations each define an event
+(with scalars being repeated).
+
+A `DosageRegimen` can be converted to its tabular form using the
+`DataFrame` function: `DataFrame(dr)`.
+
+Let us try to construct a few dosage regimens to see how these inputs change
+the constructed `DosageRegimen`s. First, a simple instantaneous (default) dose
+with the amount `9`:
+
+```jldoctest
+DosageRegimen(9)
+
+# output
+
+DosageRegimen
+│ Row │ time    │ cmt   │ amt     │ evid │ ii      │ addl  │ rate    │ duration │ ss   │
+│     │ Float64 │ Int64 │ Float64 │ Int8 │ Float64 │ Int64 │ Float64 │ Float64  │ Int8 │
+├─────┼─────────┼───────┼─────────┼──────┼─────────┼───────┼─────────┼──────────┼──────┤
+│ 1   │ 0.0     │ 1     │ 9.0     │ 1    │ 0.0     │ 0     │ 0.0     │ 0.0      │ 0    │
+```
+
+We see that the default comtpartments, rates, etc were set for us. We recommend always setting
+a compartment name or index, so let us do that, and change the dosage regimen to a constant rate
+of 0.1. This implies a duration of 90:
+
+```jldoctest
+DosageRegimen(9.0; cmt=:Central, rate=0.1)
+
+# output
+
+DosageRegimen
+│ Row │ time    │ cmt     │ amt     │ evid │ ii      │ addl  │ rate    │ duration │ ss   │
+│     │ Float64 │ Symbol  │ Float64 │ Int8 │ Float64 │ Int64 │ Float64 │ Float64  │ Int8 │
+├─────┼─────────┼─────────┼─────────┼──────┼─────────┼───────┼─────────┼──────────┼──────┤
+│ 1   │ 0.0     │ Central │ 9.0     │ 1    │ 0.0     │ 0     │ 0.1     │ 90.0     │ 0    │
+```
+
+We can also construct a dosage regimen that is composed of several `DosageRegimen`s, this is
+done by passing several `DosageRegimen` instances to the `DosageRegimen` constructor:
+
+```jldoctest
+dr1 = DosageRegimen(9.0; cmt=:Central, rate=0.1)
+dr2 = DosageRegimen(9.0; time=1.0, cmt=:Central, rate=0.1)
+
+DosageRegimen(dr1, dr2)
+
+# output
+
+DosageRegimen
+│ Row │ time    │ cmt     │ amt     │ evid │ ii      │ addl  │ rate    │ duration │ ss   │
+│     │ Float64 │ Symbol  │ Float64 │ Int8 │ Float64 │ Int64 │ Float64 │ Float64  │ Int8 │
+├─────┼─────────┼─────────┼─────────┼──────┼─────────┼───────┼─────────┼──────────┼──────┤
+│ 1   │ 0.0     │ Central │ 9.0     │ 1    │ 0.0     │ 0     │ 0.1     │ 90.0     │ 0    │
+│ 2   │ 1.0     │ Central │ 9.0     │ 1    │ 0.0     │ 0     │ 0.1     │ 90.0     │ 0    │
+```
+
+In this case, the second dose was simply a repetition of the first after 1 unit of time. We could
+have used the `ii` and `addl` keywords to construct a more compact representation of the same
+dosage regimen:
+
+```jldoctest
+DosageRegimen(9.0; cmt=:Central, rate=0.1, addl=1, ii=1.0)
+
+# output
+
+DosageRegimen
+│ Row │ time    │ cmt     │ amt     │ evid │ ii      │ addl  │ rate    │ duration │ ss   │
+│     │ Float64 │ Symbol  │ Float64 │ Int8 │ Float64 │ Int64 │ Float64 │ Float64  │ Int8 │
+├─────┼─────────┼─────────┼─────────┼──────┼─────────┼───────┼─────────┼──────────┼──────┤
+│ 1   │ 0.0     │ Central │ 9.0     │ 1    │ 1.0     │ 1     │ 0.1     │ 90.0     │ 0    │
+```
+
+Finally, we show the vector form mentioned above. If we input vectors instead of scalars, we
+can simulataneously define several administrations in one constructor as follows:
+
+```jldoctest
+DosageRegimen([9.0, 18]; cmt=:Central, rate=[0.1, 1.0], time=[1.0, 5.0], addl=1, ii=2)
+
+# output
+
+DosageRegimen
+│ Row │ time    │ cmt     │ amt     │ evid │ ii      │ addl  │ rate    │ duration │ ss   │
+│     │ Float64 │ Symbol  │ Float64 │ Int8 │ Float64 │ Int64 │ Float64 │ Float64  │ Int8 │
+├─────┼─────────┼─────────┼─────────┼──────┼─────────┼───────┼─────────┼──────────┼──────┤
+│ 1   │ 1.0     │ Central │ 9.0     │ 1    │ 2.0     │ 1     │ 0.1     │ 90.0     │ 0    │
+│ 2   │ 5.0     │ Central │ 18.0    │ 1    │ 2.0     │ 1     │ 1.0     │ 18.0     │ 0    │
+```
 
 ## The Subject Constructor
 
@@ -57,47 +170,6 @@ The definitions of the arguments are as follows:
 - `evs` is a `DosageRegimen`. Defaults to an empty event list.
 - `time` is the list of times associated with the observations.
 
-### `DosageRegimen`
-
-The `DosageRegimen` type is a specification of a regimen. Its constructor is:
-
-```julia
-DosageRegimen(amt;
-              time = 0,
-              cmt  = 1,
-              evid = 1,
-              ii   = zero.(time),
-              addl = 0,
-              rate = zero.(amt)./oneunit.(time),
-              ss   = 0)
-```
-
-Each of the values can either be `AbstractVector`s or scalars. All vectors must
-be of the same length, and the elementwise combinations each define an event
-(with scalars being repeated).
-
-Additionally, multiple `DosageRegimen`s can be combined to form a `DosageRegimen`.
-For example, if we have:
-
-```julia
-dr1 = DosageRegimen(100, ii = 24, addl = 6)
-dr2 = DosageRegimen(50,  ii = 12, addl = 13)
-dr3 = DosageRegimen(200, ii = 24, addl = 2)
-```
-
-then the following is the `DosageRegimen` for the combination of all doses:
-
-```julia
-dr = DosageRegimen(e1, e2, e3)
-```
-
-The current `DosageRegimen` can be viewed in its tabular form using the
-`DataFrame` function: `DataFrame(dr)`.
-
-## The Population Constructor
-
-The `Population` constructor is simply `Population(subjects)`, where
-`subjects` is a collection of `Subject`s.
 
 ## PumasNDF
 
