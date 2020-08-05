@@ -121,6 +121,11 @@ Distributions.fit(
  )
 ```
 
+!!! info
+    
+    We use a Generalised `NUTS` with multinomial sampling with a diagonal metric and Ordinary leapfrog integrator. 
+    The adaptation is done using the Stan's windowed adaptation routine with a target acceptance ratio of `0.8`.  
+
 The arguments are:
 
 - `model`: a `PumasModel`, either defined by the `@model` DSL or the function-based
@@ -141,7 +146,7 @@ The MCMC chain is stored in the `chain` field of the returned `BayesMCMCResults`
 Additionally the result can be converted into a `Chains` object from MCMCChains.jl,
 allowing utlilization of diagnostics and visualization tooling. This is discussed further in
 the Bayesian Estimation tutorial. 
- 
+
 The following functions help with querying common results on the Bayesian
 posterior:
 
