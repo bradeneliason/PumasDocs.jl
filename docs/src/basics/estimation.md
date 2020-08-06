@@ -125,7 +125,8 @@ Distributions.fit(
     
     We use a `NUTS` with the generalised no-U-turn termination criterion and multinomial sampling on Hamiltonian system 
     whose kinetic energy is specified with a diagonal metric (diagonal matrix with positive diagonal entries).
-    For numerical intergation of the Hamitlonian system, we use the ordinary leapfrog integrator. The adaptation is done 
+    For numerical intergation of the Hamiltonian system, we use the ordinary leapfrog integrator. The adaptation is done 
+
     using the Stan’s windowed adaptation routine with a target acceptance ratio of `0.8`.
   
 The arguments are:
