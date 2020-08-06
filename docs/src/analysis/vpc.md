@@ -26,7 +26,7 @@ The following keyword arguments are supported:
 
     - `quantiles::NTuple{3,Float64}`: A three-tuple of the quantiles for which the quantiles will be computed. The default is `(0.1, 0.5, 0.9)` which computes the 10th, 50th and 90th percentile.
     - `level::Real`: Probability level to use for the simulated prediction intervals. The default is `0.95`.
-    - `dv::Symbol`: The name of the dependent variable to use for the VPCs. The default is the first dependent variable in the dataset.
+    - `dv::Symbol`: The name of the dependent variable to use for the VPCs, passed in as a `Symbol`. The default is the first dependent variable in the dataset.
     - `stratify_by`: The covariates to be used for stratification. Takes an array of the `Symbol`s of the stratification covariates.
     - `ensemblealg`: This is passed to the `simobs` call while the `reps` simulations. For more description check the docs for `simobs`.
     - `bandwidth`: The kernel bandwidth in the quantile regression. If you are seeing `NaN`s or an error, increasing the bandwidth should help in most cases. With higher values of the `bandwidth` you will get more smoothened plots of the quantiles so it's a good idea to check with your data the right `bandwidth`.
