@@ -7,19 +7,19 @@ end
 In Pumas, subjects are represented by the `Subject` type and collections of
 subjects are represented as `Vector`s of `Subject`s aliased `Population`. Subjects
 are defined by their identifier, observations, covariates, and events. In this
-section we will specify the methods used for defining `Subject`s programatically
-or using the `read_pumas` function that reads in data that follows the PumasNDF data
-format. Before we look at `Subject`s, we will take a look at how to define events
+section we will specify the methods used for defining `Subject`s programmatically
+or using the `read_pumas` function that reads in data that follows the Pumas NLME Data Format
+(PumasNDF) data format. Before we look at `Subject`s, we will take a look at how to define events
 as represented by the `DosageRegimen` type.
 
 ## Dosage Regimen Terminology
 
-When subjects are subjected to treatment it is represented by an event in Pumas.
-Administraion of a drug is represented by a `DosageRegimen` that describes the
+When subjects are subjected to treatment it is represented by an _event_ in Pumas.
+Administration of a drug is represented by a `DosageRegimen` that describes the
 amount, type, frequency and route. `DosageRegimen`s can either be constructed
-programatically using the `DosageRegimen` constructor or from a data source in
+programmatically using the `DosageRegimen` constructor or from a data source in
 the `PumasNDF` format using `read_pumas`. The names of the inputs are the same
-inpedendent of how the `DosageRegimen` is constructed. The definition of the values are as follows:
+independent of how the `DosageRegimen` is constructed. The definition of the values are as follows:
 
 - `amt`: the amount of the dose. This is the only required value.
 - `time`: the time at which the dose is given. Defaults to 0.
@@ -80,7 +80,7 @@ DosageRegimen
 │ 1   │ 0.0     │ 1     │ 9.0     │ 1    │ 0.0     │ 0     │ 0.0     │ 0.0      │ 0    │
 ```
 
-We see that the default comtpartments, rates, etc were set for us. We recommend always setting
+We see that the default compartments, rates, etc were set for us. We recommend always setting
 a compartment name or index, so let us do that, and change the dosage regimen to a constant rate
 of 0.1. This implies a duration of 90:
 
@@ -147,7 +147,7 @@ DosageRegimen
 ```
 
 Finally, we show the vector form mentioned above. If we input vectors instead of scalars, we
-can simulataneously define several administrations in one constructor as follows:
+can simultaneously define several administrations in one constructor as follows:
 
 ```jldoctest
 DosageRegimen([9.0, 18]; cmt=:Central, rate=[0.1, 1.0], time=[1.0, 5.0], addl=1, ii=2)
@@ -578,4 +578,3 @@ Following is the list of checks applied by `read_pumas` function with examples.
 
     ERROR: PumasDataError: [Subject id: 1, row = 1, col = evid] amt can only be missing or zero when evid is zero
     ```
-
