@@ -160,7 +160,7 @@ good fit.
 ![Bandwidth 5](../assets/vpc/bandwidth5.png)
 
 We see the plot with higher `bandwidth` better captures the data, so we would use the same `bandwidth` value
-for VPC stratified on `wt`.  
+for VPC of the fitted model, stratified on `wt`.  
 
 
 ```julia
