@@ -53,10 +53,10 @@ PumasModel
 which creates a model with a parameter that has a lower and upper bound on the allowed values.
 
 !!! tip
-   Pumas.jl does not expect specific names for parameters, dependent variables, and so on. This
-   means that fixed effects do not have to be called θ, random effects don't have to be called η,
-   variability (variance-covariance) matrices for random effects don't have to be called Ω, and so on
-   Pick whatever is natural for your context.
+    Pumas.jl does not expect specific names for parameters, dependent variables, and so on. This
+    means that fixed effects do not have to be called θ, random effects don't have to be called η,
+    variability (variance-covariance) matrices for random effects don't have to be called Ω, and so on
+    Pick whatever is natural for your context.
 
 Different domains are available for different purposes. Their names and purposes are
 
@@ -316,7 +316,7 @@ PumasModel
 You could use four scalar `η`'s as shown above, but for BOV it is useful to encode the occasions using integers 1, 2, 3, ..., N and simply index into `η` using `η[OCC]` where `OCC` is the occasion covariate.
 
 !!! note
-   In the context of estimation using the `fit` function all variables must come from a univariate or multivariate normal distribution. Other distributions can be specified when solving or simulating the model.
+    In the context of estimation using the `fit` function all variables must come from a univariate or multivariate normal distribution. Other distributions can be specified when solving or simulating the model.
 
 ### `@covariates`
 The covariates in the model have to be specified in the `@covariates` block. This information is used to
@@ -541,7 +541,6 @@ end
 
 This will be slightly faster. However, sometimes it might be helpful to use `:=` for intermediary calculations in complicated expressions. An example is the proportional error model:
 
-```julia
 ```julia
 @model begin
   @param begin
