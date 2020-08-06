@@ -182,7 +182,8 @@ The other arguments are optional (keyword arguments) and allow changing the colu
 default.
 
 ### PumasNDF Checks
-`read_pumas` function does some general checks on the provided data and informs the user about inconsistency in the data and throw an error in case of invalid data reporting row number and column name causing the problem so that user can look and resolve the issue.
+The `read_pumas` function does some general checks on the provided data and informs the user about inconsistency in the data and throws an error in case of invalid data reporting row number and column name causing the problem so that the user can look and resolve the issue.
+
 
 Following is the list of checks applied by `read_pumas` function with examples.
 
@@ -240,7 +241,8 @@ Following is the list of checks applied by `read_pumas` function with examples.
 
 
 
-4. Non-numeric/string entries in `amt`column
+4. Non-numeric/string entries in `amt` column
+
 
    This check is similar to above.
 
@@ -470,4 +472,3 @@ Following is the list of checks applied by `read_pumas` function with examples.
 
     ERROR: PumasDataError: [Subject id: 1, row = 1, col = evid] amt can only be missing or zero when evid is zero
     ```
-
