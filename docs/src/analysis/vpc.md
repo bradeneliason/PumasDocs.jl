@@ -2,7 +2,9 @@
 
 Pumas allows you to generate VPC quantiles for your data and model simulations
 and utilize the Julia plotting capabilities to generate the relevant VPC plots.
-This is allowed with the `vpc` function discuseed below that returns a `VPC` object.
+This is allowed with the `vpc` function discussed below that returns a `VPC` object.
+We generate the VPCs with the non-parameteric quantile regression approach discussed
+in the [paper](https://ascpt.onlinelibrary.wiley.com/doi/pdf/10.1002/psp4.12319) by _Jamesen et al._
 
 ```julia
  vpc(fpm::FittedPumasModel,
@@ -31,6 +33,9 @@ The following keyword arguments are supported:
     - `ensemblealg`: This is passed to the `simobs` call while the `reps` simulations. For more description check the docs for `simobs`.
     - `bandwidth`: The kernel bandwidth in the quantile regression. If you are seeing `NaN`s or an error, increasing the bandwidth should help in most cases. With higher values of the `bandwidth` you will get more smoothened plots of the quantiles so it's a good idea to check with your data the right `bandwidth`.
     - `numstrats`: The number of strata to divide into based on the unique values of the covariate, takes an array with the number of strata for the corresponding covariate passed in `stratify_by`. It takes a default of `4` for each of the covariates.
+    - `idv`: The independent variable used for the VPC, deffaults to `:time`. 
+    - `sim_idvs`: The independent variable's values used in the simulation (currently limited to values in case of `:time` as the 
+    `idv` and gets passed in as the `obstimes` kwarg to `simobs`).
 
 Hence a `vpc` call with 100 `nreps` would be:
 
@@ -162,6 +167,10 @@ good fit.
 We see the plot with higher `bandwidth` better captures the data, so we would use the same `bandwidth` value
 for VPC of the fitted model, stratified on `wt`.  
 
+!!! tip
+
+    If your `vpc` run gives you an error message similar to `ERROR: LinearAlgebra.LAPACKException(2)`, increasing the `bandwidth` should
+    fix it in most cases.
 
 ```julia
  res = fit(model,data,param,Pumas.FOCEI())
@@ -177,6 +186,16 @@ for VPC of the fitted model, stratified on `wt`.
 ```
 ![WT VPC](../assets/vpc/vpcstratwt.png)
 
+Let's pass in the time grid with the `sim_idvs` kwarg to `vpc` for the simulation time points.
+```julia
+ vpc_fpm = vpc(res, 100, sim_idvs = 0.0:5:60.0)
+ plot(vpc_fpm)
+```
+![sim idv](../assets/vpc/simidvs.png)
+
 !!! note
 
     For most users the method used in quantile regression is not going to be of concern, but if you see large run times switching `qreg_method` to `IP(true)` after loading QuantileRegressions.jl should help in improving the performance with a tradeoff in the accuracy of the regression fitting.
+
+VPCs for discrete or time to event data is already implemented and undergoing internal testing, these should become available 
+in upcoming releases. Additionally prediction corrected VPCs (pcVPCs) are work in progress and will become available soon.
