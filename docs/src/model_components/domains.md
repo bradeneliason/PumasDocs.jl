@@ -12,9 +12,9 @@ and `fit`. For example, if the `param` specification is given as:
 
 ```julia
 @param begin
-    θ ∈ VectorDomain(2, lower=[0.0,0.0], upper=[20.0,20.0])
+    θ ∈ VectorDomain(2; lower=[0.0,0.0], upper=[20.0,20.0])
     Ω ∈ PSDDomain(2)
-    Σ ∈ ConstDomain(0.1)
+    Σ ∈ RealDomain(; lower=0.01, upper=0.2)
 end
 ```
 
@@ -54,17 +54,6 @@ VectorDomain(n; upper, lower)
 A `RealDomain` requires that the matching parameters are an `AbstractFloat` type.
 A `VectorDomain` requires that the matching parameters are a `Vector` of an
 `AbstactFloat` type which has the correct size.
-
-## ConstDomain
-
-`ConstDomain` is a special domain type which holds the parameter constant during
-estimation routines. A `ConstDomain` is defined by its value:
-
-```julia
-ConstDomain(val)
-```
-
-A `ConstDomain` requires the matching value in the parameters.
 
 ## Positive-Definite Matrix Domains
 
