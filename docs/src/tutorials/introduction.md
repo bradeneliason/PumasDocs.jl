@@ -10,8 +10,9 @@ The basic workflow of Pumas is:
 3. Analyze the results with post-processing and plots.
 
 We will show how to build a multiple-response PK/PD model
-via the `@model` macro, define a subject with multiple doses, and analyze
-the results of the simulation. This tutorial is made to be a broad overview
+via the `@model` macro, define a subject with multiple doses, analyze
+the results of the simulation, roudtrip the data for estimation and fit the data
+using maximum likelihood methods. This tutorial is made to be a broad overview
 of the workflow and more in-depth treatment of each section can be found in
 the subsequent tutorials and documentation.
 
@@ -21,111 +22,162 @@ Let's start by showing a complete simulation code, and then break down how it
 works.
 
 ```julia
-using Pumas, LinearAlgebra
+using Pumas
+using Random
+using Plots
+```
 
-model = @model begin
+```julia
+######### Turnover model
 
-    @param begin
-      θ ∈ VectorDomain(12)
+inf_2cmt_lin_turnover = @model begin
+    @param   begin
+        tvcl ∈ RealDomain(lower=0)
+        tvvc ∈ RealDomain(lower=0)
+        tvq ∈ RealDomain(lower=0)
+        tvvp ∈ RealDomain(lower=0)
+        Ω_pk ∈ PDiagDomain(4)
+        σ_prop_pk ∈ RealDomain(lower=0)
+        # PD parameters
+        tvturn ∈ RealDomain(lower=0)
+        tvebase ∈ RealDomain(lower=0)
+        tvec50 ∈ RealDomain(lower=0)
+        Ω_pd ∈ PDiagDomain(1)
+        σ_add_pd ∈ RealDomain(lower=0)
     end
 
     @random begin
-      η ~ MvNormal(Matrix{Float64}(I, 11, 11))
+      ηpk ~ MvNormal(Ω_pk)
+      ηpd ~ MvNormal(Ω_pd)
     end
 
     @pre begin
-        Ka     = θ[1]
-        CL      = θ[2]*exp(η[1])
-        Vc      = θ[3]*exp(η[2])
-        Q       = θ[4]*exp(η[3])
-        Vp      = θ[5]*exp(η[4])
-        Kin     = θ[6]*exp(η[5])
-        Kout    = θ[7]*exp(η[6])
-        IC50    = θ[8]*exp(η[7])
-        IMAX    = θ[9]*exp(η[8])
-        γ       = θ[10]*exp(η[9])
-        Vmax    = θ[11]*exp(η[10])
-        Km      = θ[12]*exp(η[11])
+        CL = tvcl * exp(ηpk[1])
+        Vc = tvvc * exp(ηpk[2])
+        Q = tvq * exp(ηpk[3])
+        Vp = tvvp * exp(ηpk[4])
+
+        ebase = tvebase*exp(ηpd[1])
+        ec50 = tvec50
+        emax = 1
+        turn = tvturn
+        kout = 1/turn
+        kin0 = ebase*kout
     end
 
     @init begin
-        Resp = Kin/Kout
+        Resp = ebase
     end
 
-    @dynamics begin
-        Depot'  = -Ka*Depot
-        Cent'   =  Ka*Depot - (CL+Vmax/(Km+(Cent/Vc))+Q)*(Cent/Vc)  + Q*(Periph/Vp)
-        Periph' =  Q*(Cent/Vc)  - Q*(Periph/Vp)
-        Resp'   =  Kin*(1-(IMAX*(Cent/Vc)^γ/(IC50^γ+(Cent/Vc)^γ)))  - Kout*Resp
+    @vars begin
+        conc := Central/Vc
+        edrug := emax*conc/(ec50 + conc)
+        kin := kin0*(1-edrug)
     end
+
+     @dynamics begin
+         Central' =  - (CL/Vc)*Central + (Q/Vp)*Peripheral - (Q/Vc)*Central
+         Peripheral' = (Q/Vc)*Central - (Q/Vp)*Peripheral
+         Resp' = kin - kout*Resp
+     end
 
     @derived begin
-        depot    = Depot
-        cp     = Cent / Vc
-        periph = Periph
-        resp   = Resp
+        dv ~ @. Normal(conc, sqrt(conc^2*σ_prop_pk))
+        resp ~ @. Normal(Resp, sqrt(σ_add_pd))
     end
 end
 
-regimen = DosageRegimen([15,15,15,15], time=[0,4,8,12])
-subject = Subject(id=1,evs=regimen)
+turnover_params = (tvcl = 1.5,
+                   tvvc = 25.0,
+                   tvq = 5.0,
+                   tvvp = 150.0,
+                   tvturn = 10,
+                   tvebase = 10,
+                   tvec50 = 0.3,
+                   Ω_pk = Diagonal([0.05,0.05,0.05,0.05]),
+                   Ω_pd = Diagonal([0.05]),
+                   σ_prop_pk = 0.02,
+                   σ_add_pd = 0.2)
 
-param = (θ = [
-              1, # Ka  Absorption rate constant 1 (1/time)
-              1, # CL   Clearance (volume/time)
-              20, # Vc   Central volume (volume)
-              2, # Q    Inter-compartmental clearance (volume/time)
-              10, # Vp   Peripheral volume of distribution (volume)
-              10, # Kin  Response in rate constant (1/time)
-              2, # Kout Response out rate constant (1/time)
-              2, # IC50 Concentration for 50% of max inhibition (mass/volume)
-              1, # IMAX Maximum inhibition
-              1, # γ    Emax model sigmoidicity
-              0, # Vmax Maximum reaction velocity (mass/time)
-              2  # Km   Michaelis constant (mass/volume)
-              ],) # single element `NamedTuple`s end with a comma
 
-sim = simobs(model, subject, param)
 
-using Plots
-plot(sim)
+
+simdf = DataFrame(sims)
+simdf[!, :cmt] .= 1
+simdf = simdf |>
+            @filter(!(_.dv==0 && _.evid==0)) |> DataFrame
+CSV.write("./data/nm_idr.csv", simdf)
+
+data = read_pumas(simdf, dvs=[:dv,:resp])
+
+@time res = fit(inf_2cmt_lin_turnover, data, turnover_params, Pumas.FOCEI())
+
 ```
 
-![Plot sim](https://user-images.githubusercontent.com/1814174/61486825-5d686780-a972-11e9-958e-dbb95e410267.png)
+```julia
+regimen = DosageRegimen(150, rate = 10, cmt = 1)
+pop = Population(map(i -> Subject(id = i,events = ev1), 1:10))
+```
+
+```julia
+sd_obstimes = [0.25, 0.5, 0.75, 1, 2, 4, 8,
+                12, 16, 20, 24, 36, 48, 60, 71.9] # single dose observation times
+```
+
+```julia
+Random.seed!(123)
+sims = simobs(inf_2cmt_lin_turnover,
+               pop,
+               turnover_params,
+               obstimes = sd_obstimes)
+```
+
+```julia
+plot(sims, obsnames=[:dv, :resp], title = "",  guidefontsize = 25,
+           linewidth = 5, xtickfont = font(25), ytickfont = font(25),
+           size=(1000, 800), xlabel = "Time (hours)")
+```
+![Plot sim](./assets/intro_pkpdsim.png)
 
 In this code, we defined a nonlinear mixed effects model by describing the
 parameters, the random effects, the dynamical model, and the derived
-(result) values. Then we generated a subject who receives doses
-of 15mg every 4 hours, specified parameter values, simulated the model,
+(result) values. Then we generated a population of 10 subjects who received a single dose
+of 150mg, specified parameter values, simulated the model,
 and generated a plot of the results. Now let's walk through this process!
 
 ## Using the Model Macro
 
 First we define the model. The simplest way to do is via the `@model` DSL. Inside of
 this block we have a few subsections. The first of which is `@param`. In here
-we define what kind of parameters we have. For this model we will define a
-vector parameter `θ` of size 12:
+we define what kind of parameters we have. For this model we will define structural model
+parameters of PK and PD and their corresponding variances where applicable:
 
 ```julia
-@param begin
-  θ ∈ VectorDomain(12)
+@param   begin
+    tvcl ∈ RealDomain(lower=0)
+    tvvc ∈ RealDomain(lower=0)
+    tvq ∈ RealDomain(lower=0)
+    tvvp ∈ RealDomain(lower=0)
+    Ω_pk ∈ PDiagDomain(4)
+    σ_prop_pk ∈ RealDomain(lower=0)
+    # PD parameters
+    tvturn ∈ RealDomain(lower=0)
+    tvebase ∈ RealDomain(lower=0)
+    tvec50 ∈ RealDomain(lower=0)
+    Ω_pd ∈ PDiagDomain(1)
+    σ_add_pd ∈ RealDomain(lower=0)
 end
 ```
 
 Next we define our random effects. The random effects are defined by a distribution
 from Distributions.jl. For more information on defining distributions, please
 see the Distributions.jl documentation. For this tutorial, we wish to have a
-multivariate normal of 11 uncorrelated random effects, so we utilize the syntax:
+multivariate normal of uncorrelated random effects, one for PK and another for PD so we utilize the syntax:
 
 ```julia
-using LinearAlgebra
-@random begin
-  η ~ MvNormal(Matrix{Float64}(I, 11, 11))
-end
+ηpk ~ MvNormal(Ω_pk)
+ηpd ~ MvNormal(Ω_pd)
 ```
-
-Notice that here we imported `I` from LinearAlgebra and said that our
-Normal distribution's covariance is said `I`, the identity matrix.
 
 Now we define our pre-processing step in `@pre`. This is where we choose how the
 parameters, random effects, and the covariates collate. We define the values and
@@ -133,18 +185,17 @@ give them a name as follows:
 
 ```julia
 @pre begin
-    Ka1     = θ[1]
-    CL      = θ[2]*exp(η[1])
-    Vc      = θ[3]*exp(η[2])
-    Q       = θ[4]*exp(η[3])
-    Vp      = θ[5]*exp(η[4])
-    Kin     = θ[6]*exp(η[5])
-    Kout    = θ[7]*exp(η[6])
-    IC50    = θ[8]*exp(η[7])
-    IMAX    = θ[9]*exp(η[8])
-    γ       = θ[10]*exp(η[9])
-    Vmax    = θ[11]*exp(η[10])
-    Km      = θ[12]*exp(η[11])
+    CL = tvcl * exp(ηpk[1])
+    Vc = tvvc * exp(ηpk[2])
+    Q = tvq * exp(ηpk[3])
+    Vp = tvvp * exp(ηpk[4])
+
+    ebase = tvebase*exp(ηpd[1])
+    ec50 = tvec50
+    emax = 1
+    turn = tvturn
+    kout = 1/turn
+    kin0 = ebase*kout
 end
 ```
 
@@ -155,7 +206,7 @@ have a zero for its starting value. We wish to only set the starting value for
 
 ```julia
 @init begin
-    Resp = Kin/Kout
+    Resp = ebase
 end
 ```
 
@@ -165,10 +216,20 @@ we use:
 
 ```julia
 @dynamics begin
-    Depot'  = -Ka*Depot
-    Cent'   =  Ka*Depot - (CL+Vmax/(Km+(Cent/Vc))+Q)*(Cent/Vc)  + Q*(Periph/Vp)
-    Periph' =  Q*(Cent/Vc)  - Q*(Periph/Vp)
-    Resp'   =  Kin*(1-(IMAX*(Cent/Vc)^γ/(IC50^γ+(Cent/Vc)^γ)))  - Kout*Resp
+    Central' =  - (CL/Vc)*Central + (Q/Vp)*Peripheral - (Q/Vc)*Central
+    Peripheral' = (Q/Vc)*Central - (Q/Vp)*Peripheral
+    Resp' = kin - kout*Resp
+end
+```
+
+Next we setup alias variables that can be used later in the code. Such alias code
+can be setup in the `@vars` block
+
+```julia
+@vars begin
+    conc := Central/Vc
+    edrug := emax*conc/(ec50 + conc)
+    kin := kin0*(1-edrug)
 end
 ```
 
@@ -177,74 +238,82 @@ output values using the following:
 
 ```julia
 @derived begin
-    depot  = Depot
-    cp     = Cent / θ[3]
-    periph = Periph
-    resp   = Resp
+    dv ~ @. Normal(conc, sqrt(conc^2*σ_prop_pk))
+    resp ~ @. Normal(Resp, sqrt(σ_add_pd))
 end
 ```
 
 ## Building a Subject
 
-Now let's build a subject to simulate the model with. A subject defines three
+Now let's build a subject to simulate the model with. A subject is defined by the following
 components:
 
-1. The dosage regimen
-2. The covariates of the individual
-3. Observations associated with the individual.
+1. An identifier - `id`
+2. The dosage regimen - `events`
+3. The covariates of the individual - `covariates`
+4. Observations associated with the individual - `observations`
+5. The timing of the sampling - `time`
+6. A vector of times if the covariates are time-varying - `covariate_time`
+7. Interpolation direction for covariates - `covariate_direction`
 
-Our model did not make use of covariates so we will ignore (2) for now, and
-(3) is only necessary for fitting parameters to data which will not be covered
+Our model did not make use of covariates so we will ignore (3, 6 and 7) for now, and
+(4) is only necessary for fitting parameters to data which will not be covered
 in this tutorial. Thus our subject will be defined simply by its dosage regimen.
 
-To do this, we use the `DosageRegimen` constructor. It uses terms from the
-NMTRAN format to specify its dose schedule. The first value is always the
+To do this, we use the `DosageRegimen` constructor. The first value is always the
 dosing amount. Then there are optional arguments, the most important of which
 is `time` which specifies the time that the dosing occurs. For example,
 
 ```julia
-DosageRegimen(15, time=0)
+DosageRegimen(150, time=0)
 ```
 
-is a dosage regimen which simply does a single dose at time `t=0` of amount 15.
-If we use arrays, then the dosage regimen will be the grouping of the values.
-For example, let's define a dose of amount 15 at times `t=0,4,8`, and `12`:
+is a dosage regimen which simply does a single dose at time `t=0` of amount 150.
+Let's assume the dose is an infusion administered at the rate of 10 mg/hour into the
+first compartment
 
 ```julia
-regimen = DosageRegimen([15,15,15,15], time=[0,4,8,12])
+regimen = DosageRegimen(150, rate=10, cmt=1)
 ```
 
 Let's define our subject to have `id=1` and this multiple dosing regimen:
 
 ```julia
-subject = Subject(id=1,evs=regimen)
+subject = Subject(id = 1, events = regimen)
+```
+
+You can also create a collection of subjects which becomes a `Population`.
+
+```julia
+pop = Population(map(i -> Subject(id= i, events = regimen), 1:10))
 ```
 
 ## Running a Simulation
 
 The main function for running a simulation is `simobs`. `simobs` on a population
-simulates all of the population (in parallel), while `simobs` on a subject
+simulates all of the population, while `simobs` on a subject
 simulates just that subject. If we wish to change the parameters from the
 initialized values, then we pass them in. Let's simulate subject 1 with a set
 of chosen parameters:
 
 ```julia
-param = (θ = [
-          1, # Ka  Absorption rate constant 1 (1/time)
-          1, # CL   Clearance (volume/time)
-          20, # Vc   Central volume (volume)
-          2, # Q    Inter-compartmental clearance (volume/time)
-          10, # Vp   Peripheral volume of distribution (volume)
-          10, # Kin  Response in rate constant (1/time)
-          2, # Kout Response out rate constant (1/time)
-          2, # IC50 Concentration for 50% of max inhibition (mass/volume)
-          1, # IMAX Maximum inhibition
-          1, # γ    Emax model sigmoidicity
-          0, # Vmax Maximum reaction velocity (mass/time)
-          2  # Km   Michaelis constant (mass/volume)
-          ],)
+turnover_params = (tvcl = 1.5,
+                   tvvc = 25.0,
+                   tvq = 5.0,
+                   tvvp = 150.0,
+                   tvturn = 10,
+                   tvebase = 10,
+                   tvec50 = 0.3,
+                   Ω_pk = Diagonal([0.05,0.05,0.05,0.05]),
+                   Ω_pd = Diagonal([0.05]),
+                   σ_prop_pk = 0.02,
+                   σ_add_pd = 0.2)
 
-sim = simobs(model, subject, param)
+Random.seed!(123)
+sims = simobs(inf_2cmt_lin_turnover,
+               pop,
+               turnover_params,
+               obstimes = sd_obstimes)
 ```
 
 We can then plot the simulated observations by using the `plot` command:
@@ -254,78 +323,91 @@ using Plots
 plot(sim)
 ```
 
-![show plot](https://user-images.githubusercontent.com/1814174/61486825-5d686780-a972-11e9-958e-dbb95e410267.png)
+![simple plot]("./assets/intro_pkpdsim_simple.png")
 
-Note that we can use the [attributes from `Plots.jl`](http://docs.juliaplots.org/latest/attributes/)
-to further modify the plot. For example,
+Note that we can use the [attributes from `Plots.jl`](http://docs.juliaplots.org/latest/attributes/) to further modify the plot. For example,
 
 ```julia
-plot(sim,
-     color=2,thickness_scaling=1.5,
-     legend=false, lw=2)
+plot(sims, obsnames=[:dv, :resp], title = "",  guidefontsize = 25,
+           linewidth = 5, xtickfont = font(25), ytickfont = font(25),
+           size=(1000, 800), xlabel = "Time (hours)")
 ```
+![Plot sim](./assets/intro_pkpdsim.png)
 
-![show plot](https://user-images.githubusercontent.com/1814174/61486892-90126000-a972-11e9-96ef-e898dc2a9dc7.png)
 
-Notice that in our model we said that there was a single parameter `θ` so our
-input parameter is a named tuple with just the name `θ`. When we only give
-the parameters, the random effects are automatically sampled from their
+When we only give the parameters, the random effects are automatically sampled from their
 distributions. If we wish to prescribe a value for the random effects, we pass
 initial values similarly:
 
 ```julia
-randeffs = (η = rand(11),)
-sim = simobs(model, subject, param, randeffs)
-plot(sim)
+randeffs = (ηpk = rand(4), ηpd = rand(1),)
 ```
-
-![show plot](https://user-images.githubusercontent.com/1814174/61487094-031bd680-a973-11e9-9835-4ad1c52a87ba.png)
 
 If a population simulation is required with no random effects, then the values of
 the η's can be set to zero that will result in a simulation only at the mean level:
 
 ```julia
-randeffs = (η = zeros(11),)
-sim = simobs(model, subject, param, randeffs)
-plot(sim)
+randeffs = (ηpk = zeros(4), ηpd = zeros(1))
+Random.seed!(123)
+sims = simobs(inf_2cmt_lin_turnover,
+               pop,
+               turnover_params,
+               [randeffs for i in 1:length(pop)];
+               obstimes = sd_obstimes)
+plot(sims, title = "",  guidefontsize = 25,
+           linewidth = 5, xtickfont = font(25), ytickfont = font(25),
+           size=(1000, 800), xlabel = "Time (hours)")
 ```
 
-![show plot](https://user-images.githubusercontent.com/1814174/61487172-30688480-a973-11e9-8292-a3a7764986bc.png)
+Notice that since we are simulating a population, the `randeffs` have to be the
+same lenght of the population, i.e., one set of random effects for each subject.
 
-The points which are saved are by default at once every hour until one day after
-the last event. If you wish to change the saving time points, pass the keyword
-argument `obstimes`. For example, let's save at every `0.1` hours and run the
-simulation for 19 hours:
+![Plot sim](./assets/intro_pkpdsim_wo_randeffs.png)
+
+You still see variability in the plot above, mainly due to the residual variability
+components in the model. It is quite trivial to change the parameter estimates of
+only a subset of parameters as below
 
 ```julia
-sim = simobs(model, subject, param, randeffs, obstimes = 0:0.1:19)
+turnover_params_wo_sigma  = (turnover_params..., σ_prop_pk = 0.0, σ_add_pd = 0.0)
 ```
+and now if we perform the simulation again without random effects to get only the
+population mean,
+
+```julia
+randeffs = (ηpk = zeros(4), ηpd = zeros(1))
+Random.seed!(123)
+sims = simobs(inf_2cmt_lin_turnover,
+               pop,
+               turnover_params_wo_sigma,
+               [randeffs for i in 1:length(pop)];
+               obstimes = sd_obstimes)
+plot(sims, title = "",  guidefontsize = 25, color=:blue,
+           linewidth = 5, xtickfont = font(25), ytickfont = font(25),
+           size=(1000, 800), xlabel = "Time (hours)")
+```
+
+![Plot sim](./assets/intro_pkpdsim_wo_randeffs_wo_sigma.png)
+
 
 ## Handling the SimulatedObservations
 
-The resulting `SimulatedObservations` type has two fields. `sim.times` is an
-array of time points for which the data was saved. `sim.derived` is the result
-of the derived variables. From there, the derived variables are accessed by name.
+The resulting `SimulatedObservations` type has two fields for each subject.
+`sim[1].time` is an array of time points for which the data was saved. `sim[1].observations` is the result of the derived variables. From there, the derived variables are accessed by name.
 For example,
 
 ```julia
-sim[:cp]
+sims[1].observations[:dv]
 ```
 
-is the array of `cp` values at the associated time points. We can turn this
+is the array of `dv` values at the associated time points for subject 1. We can turn this
 into a DataFrame via using the `DataFrame` command:
 
 ```julia
-DataFrame(sim)
+DataFrame(sims)
 ```
 
 From there, any Julia tools can be used to analyze these arrays and DataFrames.
-For example, if we wish the plot the result of `depot` over time, we'd use the
-following:
-
-```julia
-plot(sim.times,sim[:depot])
-```
 
 Using these commands, a Julia program can be written to post-process the
 program however you like!
@@ -333,8 +415,8 @@ program however you like!
 ## Conclusion
 
 This tutorial covered basic workflow for how to build a model and simulate
-results from it. The subsequent tutorials will go into more detail in the components,
-such as:
+results from it. The subsequent [tutorials](https://tutorials.pumas.ai/) will go into more detail in the components, such as:
 
 1. More detailed treatment of specifying populations, dosage regimens, and covariates.
-2. Reading in dosage regimens and observations from NMTRAN data.
+2. Reading in dosage regimens and observations from standard input data.
+3. Fitting models

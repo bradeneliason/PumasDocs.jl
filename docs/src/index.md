@@ -1,19 +1,20 @@
 # Pumas
 
-Pumas (PharmaceUtical  Modeling And Simulation) is a suite of tools for
-developing, simulating, fitting, and analyzing pharmaceutical models. The
-purpose of this framework is to bring efficient implementations of all aspects
-of pharmaceutical modeling under one cohesive package. **While Pumas is still
-in alpha**, the package currently includes:
+Pumas (PharmaceUtical  Modeling And Simulation) is a suite of tools to perform quantitative
+analytics of various kinds across the horizontal of pharmaceutical drug development. The
+purpose of this framework is to bring efficient implementations of all aspects of the analytics
+in this domain under one cohesive package. Pumas 1.0 currently includes:
 
+- Non-compartmental Analysis
 - Specification of Nonlinear Mixed Effects (NLME) Models
-- Automatic parallelization of NLME simulations
+- Simulation of NLME model using differential equations or analytical solutions
 - Deep control over the differential equation solvers for high efficiency
 - Estimation of NLME parameters via Maximum Likelihood and Bayesian methods
-- Integrated Noncompartmental Analysis (NCA)
-- Mixed analytical PK with numerical PD
+- Parallelization capabilities for both simulation and estimation
+- Mixed analytical and numerical problems
 - Interfacing with global optimizers for more accurate parameter estimates
-- Simulation and estimation diagnostics
+- Simulation and estimation diagnostics for model post-processing
+- Global and local sensitivity analysis routines for multi-scale models
 - Bioequivalence analysis
 
 Additional features are under development, with the central goal being a
@@ -26,29 +27,18 @@ user experience.
 ## License
 
 Pumas is covered by the [Julia Computing EULA](https://juliacomputing.com/eula).
+Pumas is a proprietary product developed by Pumas-AI, Inc. It is available free of cost
+for educational and research institutes. For commercial use, please contact sales@pumas.ai
 
 ## Getting Started: Installation and First Steps
 
-Pumas is distributed via JuliaPro from Julia Computing Inc. Please
-[install the current stable release of JuliaPro](https://juliacomputing.com/products/juliapro.html).
+Pumas can be downloaded from https://pumas.ai/products/pumas/download
 
-To add the `Pumas` package, use the following commands inside the JuliaPro REPL:
-
-```julia
-using Pkg
-Pkg.add("Pumas")
-```
-
-To verify that the package has been correctly installed, you can run the command
-`Pkg.test("Pumas")` which will run an internal verification suite to ensure
-accuracy. When installed, use the command:
+One can start using Pumas by invoking it from the REPL as below.
 
 ```julia
 using Pumas
 ```
-
-to bring the functionality of Pumas into your REPL. Once done, you are ready
-to start using Pumas!
 
 To start understanding the package in more detail, please checkout the tutorials
 at the start of this manual. **We highly suggest that all new users start with
@@ -56,21 +46,6 @@ the Introduction to Pumas tutorial!** If you find any example where there seems
 to be an error, please open an issue.
 
 If you have questions about usage, please join the official [Pumas Discourse](https://discourse.pumas.ai/) and take part in the discussion there. There is also a #pumas channel on the [JuliaLang Slack](https://julialang.slack.com/) for more informal discussions around Pumas.jl usage.
-
-### Jupyter Notebook Tutorials
-
-Extra tutorials are provided with the installation of Pumas. These tutorials
-are delivered in an interactive Jupyter notebook that allows you to follow
-along and tweak values to gain a better understanding. To install these
-tutorials and open the Jupyter notebooks in the browser, run the following
-commands:
-
-```julia
-using Pkg
-pkg"add https://github.com/PumasAI/PumasTutorials.jl"
-using PumasTutorials
-PumasTutorials.open_notebooks()
-```
 
 ## Annotated Table Of Contents
 
@@ -85,8 +60,7 @@ These tutorials give an "example first" approach to learning Pumas and establish
 the standardized nomenclature for the package. Additionally, ways of interfacing
 with the rest of the Julia ecosystem for visualization and statistics are
 demonstrated. Thus we highly recommend new users check out these tutorials
-before continuing into the manual. More tutorials can be found in the
-PumasTutorials.jl repository.
+before continuing into the manual. More tutorials can be found at https://tutorials.pumas.ai/
 
 ```@contents
 Pages = [
@@ -143,7 +117,4 @@ Pages = [
 
 ## Pumas Development Team
 
-The Pumas team is supported by the
-[University of Maryland, Baltimore Center for Translational Medicine (CTM)](https://www.pharmacy.umaryland.edu/centers/ctm/).
-Vijay Ivaturi is the project lead and Chris Rackauckas is the lead developer.
-For information on developing and supporting Pumas, please consult Vijay Ivaturi.
+Please visit https://pumas.ai/ to know more about our team and capabilities
