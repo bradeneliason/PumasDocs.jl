@@ -1,15 +1,25 @@
 # Dosage Regimens, Subjects, and Populations
-
-The data is passed to a Pumas model via the `Population` type. A `Population` is
-a collection of `Subject`s. In this section we will specify the methods used
-for defining `Subject`s and `Population`s. These types can either be defined
-programmatically using the `Subject` and `Population` constructors on Julia types
-or by using the Pumas NLME Data format (named PumasNDF).
+```@meta
+DocTestSetup = quote
+using Pumas
+end
+```
+In Pumas, subjects are represented by the `Subject` type and collections of
+subjects are represented as `Vector`s of `Subject`s aliased `Population`. Subjects
+are defined by their identifier, observations, covariates, and events. In this
+section we will specify the methods used for defining `Subject`s programmatically
+or using the `read_pumas` function that reads in data that follows the Pumas NLME Data Format
+(PumasNDF) data format. Before we look at `Subject`s, we will take a look at how to define events
+as represented by the `DosageRegimen` type.
 
 ## Dosage Regimen Terminology
 
-Both the `DosageRegimen` and the `PumasNDF` utilize the same terminology for
-describing a dose. The definition of the values are as follows:
+When subjects are subjected to treatment it is represented by an _event_ in Pumas.
+Administration of a drug is represented by a `DosageRegimen` that describes the
+amount, type, frequency and route. `DosageRegimen`s can either be constructed
+programmatically using the `DosageRegimen` constructor or from a data source in
+the `PumasNDF` format using `read_pumas`. The names of the inputs are the same
+independent of how the `DosageRegimen` is constructed. The definition of the values are as follows:
 
 - `amt`: the amount of the dose. This is the only required value.
 - `time`: the time at which the dose is given. Defaults to 0.
@@ -33,36 +43,7 @@ describing a dose. The definition of the values are as follows:
   it is a steady state dose that is added to the previous amount. The default
   is 0.
 
-## The Subject Constructor
-
-A `Subject` can be constructed using the following constructor:
-
-```julia
-Subject(;id = "1",
-         observations = nothing,
-         events = Event[],
-         time = observations isa AbstractDataFrame ? observations.time : nothing,
-         event_data = true,
-         covariates::Union{Nothing, NamedTuple} = nothing,
-         covariates_time = observations isa AbstractDataFrame ? observations.time : nothing,
-         covariates_direction = :right)
-```
-
-The definitions of the arguments are as follows:
-
-- `id` is the id of the subject. Defaults to `1`.
-- `observations` is a Julia type which holds the observational data. When using the `@model` interface, this must be a `NamedTuple` whose names match those
-  of the derived variables.
-- `events` is a `DosageRegimen`. Defaults to an empty event list.
-- `time` is the time when `observations` are measured
-- `event_data` is a boolean which defaults to `true` and triggers that the specified events adhere to the PumasNDF(@ref). When set to `false`, the checks for `PumasNDF` are turned off.
-- `covariates` are the covariates for the subject. It can be any Julia type when working with the function-based interface, but must be a `NamedTuple` for the `@model` interface. Defaults to `nothing`, meaning no covariates.
-- `covariates_time` - #TODO
-- `covariates_direction` - #TODO
-
-### `DosageRegimen`
-
-The `DosageRegimen` type is a specification of a regimen. Its constructor is:
+This specification leads to the following default constructor for the `DosageRegimen` type
 
 ```julia
 DosageRegimen(amt::Numeric;
@@ -76,44 +57,192 @@ DosageRegimen(amt::Numeric;
               ss::Numeric = 0)
 ```
 
-Each of the values can either be `AbstractVector`s or scalars. All vectors must
+Each of the values can either be or scalars. All vectors must
 be of the same length, and the elementwise combinations each define an event
 (with scalars being repeated).
 
-Additionally, multiple `DosageRegimen`s can be combined to form a `DosageRegimen`.
-For example, if we have:
-
-```julia
-dr1 = DosageRegimen(100, ii = 24, addl = 6)
-dr2 = DosageRegimen(50,  ii = 12, addl = 13)
-dr3 = DosageRegimen(200, ii = 24, addl = 2)
-```
-
-then the following is the `DosageRegimen` for the combination of all doses:
-
-```julia
-dr = DosageRegimen(e1, e2, e3)
-```
-
-The current `DosageRegimen` can be viewed in its tabular form using the
+A `DosageRegimen` can be converted to its tabular form using the
 `DataFrame` function: `DataFrame(dr)`.
 
-One can also combine `DosageRegimen` while including a time `offset`
+Let us try to construct a few dosage regimens to see how these inputs change
+the constructed `DosageRegimen`s. First, a simple instantaneous (default) dose
+with the amount `9`:
 
-```julia
-DosageRegimen(regimen1::DosageRegimen, regimen2::DosageRegimen; offset)
+```jldoctest
+DosageRegimen(9)
+
+# output
+
+DosageRegimen
+│ Row │ time    │ cmt   │ amt     │ evid │ ii      │ addl  │ rate    │ duration │ ss   │
+│     │ Float64 │ Int64 │ Float64 │ Int8 │ Float64 │ Int64 │ Float64 │ Float64  │ Int8 │
+├─────┼─────────┼───────┼─────────┼──────┼─────────┼───────┼─────────┼──────────┼──────┤
+│ 1   │ 0.0     │ 1     │ 9.0     │ 1    │ 0.0     │ 0     │ 0.0     │ 0.0      │ 0    │
 ```
 
-Here the second `DosageRegimen` after an `offset` time from the first. e.g. The second regimen below will start 10 hours after the last dosage regimen is completed.
+We see that the default compartments, rates, etc were set for us. We recommend always setting
+a compartment name or index, so let us do that, and change the dosage regimen to a constant rate
+of 0.1. This implies a duration of 90:
 
-```julia
-DosageRegimen(dr1, dr2, offset = 10)
+```jldoctest
+DosageRegimen(9.0; cmt=:Central, rate=0.1)
+
+# output
+
+DosageRegimen
+│ Row │ time    │ cmt     │ amt     │ evid │ ii      │ addl  │ rate    │ duration │ ss   │
+│     │ Float64 │ Symbol  │ Float64 │ Int8 │ Float64 │ Int64 │ Float64 │ Float64  │ Int8 │
+├─────┼─────────┼─────────┼─────────┼──────┼─────────┼───────┼─────────┼──────────┼──────┤
+│ 1   │ 0.0     │ Central │ 9.0     │ 1    │ 0.0     │ 0     │ 0.1     │ 90.0     │ 0    │
 ```
 
-## The Population Constructor
+We can also construct a dosage regimen that is composed of several `DosageRegimen`s, this is
+done by passing several `DosageRegimen` instances to the `DosageRegimen` constructor:
 
-The `Population` constructor is simply `Population(subjects)`, where
-`subjects` is a collection of `Subject`s.
+```jldoctest
+dr1 = DosageRegimen(9.0; cmt=:Central, rate=0.1)
+dr2 = DosageRegimen(9.0; time=1.0, cmt=:Central, rate=0.1)
+
+DosageRegimen(dr1, dr2)
+
+# output
+
+DosageRegimen
+│ Row │ time    │ cmt     │ amt     │ evid │ ii      │ addl  │ rate    │ duration │ ss   │
+│     │ Float64 │ Symbol  │ Float64 │ Int8 │ Float64 │ Int64 │ Float64 │ Float64  │ Int8 │
+├─────┼─────────┼─────────┼─────────┼──────┼─────────┼───────┼─────────┼──────────┼──────┤
+│ 1   │ 0.0     │ Central │ 9.0     │ 1    │ 0.0     │ 0     │ 0.1     │ 90.0     │ 0    │
+│ 2   │ 1.0     │ Central │ 9.0     │ 1    │ 0.0     │ 0     │ 0.1     │ 90.0     │ 0    │
+```
+
+In this case, the second dose was simply a repetition of the first after 1 unit of time. In
+this instance, we could also have used `dr1` together with the `offset` keyword to `DosageRegimen`:
+
+```jldoctest
+DosageRegimen(dr1, dr1, offset = 1.0)
+
+# output
+
+DosageRegimen
+│ Row │ time    │ cmt     │ amt     │ evid │ ii      │ addl  │ rate    │ duration │ ss   │
+│     │ Float64 │ Symbol  │ Float64 │ Int8 │ Float64 │ Int64 │ Float64 │ Float64  │ Int8 │
+├─────┼─────────┼─────────┼─────────┼──────┼─────────┼───────┼─────────┼──────────┼──────┤
+│ 1   │ 0.0     │ Central │ 9.0     │ 1    │ 0.0     │ 0     │ 0.1     │ 90.0     │ 0    │
+│ 2   │ 1.0     │ Central │ 9.0     │ 1    │ 0.0     │ 0     │ 0.1     │ 90.0     │ 0    │
+```
+
+We could also have used the `ii` and `addl` keywords to construct a more compact representation of the same
+dosage regimen:
+
+```jldoctest
+DosageRegimen(9.0; cmt=:Central, rate=0.1, addl=1, ii=1.0)
+
+# output
+
+DosageRegimen
+│ Row │ time    │ cmt     │ amt     │ evid │ ii      │ addl  │ rate    │ duration │ ss   │
+│     │ Float64 │ Symbol  │ Float64 │ Int8 │ Float64 │ Int64 │ Float64 │ Float64  │ Int8 │
+├─────┼─────────┼─────────┼─────────┼──────┼─────────┼───────┼─────────┼──────────┼──────┤
+│ 1   │ 0.0     │ Central │ 9.0     │ 1    │ 1.0     │ 1     │ 0.1     │ 90.0     │ 0    │
+```
+
+Finally, we show the vector form mentioned above. If we input vectors instead of scalars, we
+can simultaneously define several administrations in one constructor as follows:
+
+```jldoctest
+DosageRegimen([9.0, 18]; cmt=:Central, rate=[0.1, 1.0], time=[1.0, 5.0], addl=1, ii=2)
+
+# output
+
+DosageRegimen
+│ Row │ time    │ cmt     │ amt     │ evid │ ii      │ addl  │ rate    │ duration │ ss   │
+│     │ Float64 │ Symbol  │ Float64 │ Int8 │ Float64 │ Int64 │ Float64 │ Float64  │ Int8 │
+├─────┼─────────┼─────────┼─────────┼──────┼─────────┼───────┼─────────┼──────────┼──────┤
+│ 1   │ 1.0     │ Central │ 9.0     │ 1    │ 2.0     │ 1     │ 0.1     │ 90.0     │ 0    │
+│ 2   │ 5.0     │ Central │ 18.0    │ 1    │ 2.0     │ 1     │ 1.0     │ 18.0     │ 0    │
+```
+
+## The `Subject` Constructor
+
+The dosage regimens only a subset of what we need to fully specify a subject. As mentioned above, we use the `Subject` type to represent individuals in Pumas. The can be constructed using the `Subject` constructor programatically or using `read_pumas` from tabular data. The constructor has the following keywords and default values:
+
+```julia
+Subject(;id = "1",
+         observations = nothing,
+         events = Pumas.Event[],
+         time = observations isa AbstractDataFrame ? observations.time : nothing,
+         event_data = true,
+         covariates::Union{Nothing, NamedTuple} = nothing,
+         covariates_time = observations isa AbstractDataFrame ? observations.time : nothing,
+         covariates_direction = :right)
+```
+
+The definitions of the arguments are as follows:
+
+- `id` is the id of the subject. Defaults to `"1"` and can be a n`Number` or `String`.
+- `observations` holds the observational data. When using the `@model` interface, this must be a `NamedTuple` whose names match those
+  of the derived variables.
+- `events` is a `DosageRegimen` or a `Vector{<:Pumas.Event}`. Defaults to an empty event list.
+- `time` is the time when `observations` are measured
+- `event_data` is a boolean which defaults to `true` and triggers that the specified events adhere to the PumasNDF(@ref). When set to `false`, the checks for `PumasNDF` are turned off.
+- `covariates` are the covariates for the subject given as a `NamedTuple` of covariate name and value pairs. Defaults to `nothing`, meaning no covariates.
+- `covariates_time` - is a `Vector` of times that the `covariates` are observed at or, if some covariates are observed at other times than other covariates, a `NamedTuple` with observation time and covariate name pairs.
+- `covariates_direction` - a symbol that determines end-point handling in the piece-wise constant interpolation for time-varying covariates. Allowed values are `:left` and `:right`.
+
+### Constructing `Subject`s
+
+Let's create a few `Subject`s to get the general idea of how to work programatically with subjects in Pumas. We can start with the simplest subject:
+
+```jldoctest
+Subject()
+
+# output
+
+Subject
+  ID: 1
+  Events: 0
+```
+
+Suppose we want to construct a Subject with a custom identifier, some observed glucose levels and weight, we can construct the subjects in the following way:
+
+```jldoctest
+Subject(;
+  id="AKJ491",
+  events=DosageRegimen(1.0; time=1.0),
+  observations=(glucose=[8.31, 7.709, 5.19],),
+  time=[0.3, 0.9, 3.0],
+  covariates=(bloodpressure=[(143,95.01), (141.3, 94.8), (130.4, 85.1)],),
+  covariates_time=[0.0,0.5, 5.0])
+
+# output
+
+Subject
+  ID: AKJ491
+  Events: 1
+  Observables: glucose: (n=3)
+  Covariates: bloodpressure
+```
+
+### Reading `Subject`s from tabular data
+
+The `read_pumas` function allows you to read in 
+
+```julia
+read_pumas(data; covariates=Symbol[], observations=Symbol[:dv];
+                 id=:id, time=:time, evid=:evid, amt=:amt, addl=:addl,
+                 ii=:ii, cmt=:cmt, rate=:rate, ss=:ss,
+                 event_data=true, covariates_direction=:right,
+                 parse_tad = true, check=event_data)
+```
+
+The only required argument is `data`. It is the tabular data source given as an actual table (for example using [DataFrame](http://juliadata.github.io/DataFrames.jl/stable/)) or a string that contains the path to something that can be parsed by [CSV.jl](https://github.com/JuliaData/CSV.jl).
+
+The other arguments are optional (keyword arguments) and allow changing the column names from their
+default. The keywords `id`, `time`, `covariates`, and `observations` are used to tell what columns to parse
+as what type of information and `covariates_direction` is used as in the `Subject` constructor. The keywords
+`evid`, `time`, `amt`, `cmt`, `addl`, `ii`, `rate`, `ss`, and `event_data` tells what columns to use for the different
+types of information we saw when we constructed `DosageRegimen`s above. The keyword `parse_tad` detects and parses time-after-dose
+time in the `time` column, and `check` is used to turn off the data checks mentioned below.
 
 ## PumasNDF
 
@@ -159,27 +288,6 @@ Special notes:
 
 - If `rate` and `duration` exist, then it is enforced that `amt=rate*duration`
 - All values and header names are interpreted as lower case.
-
-### PumasNDF Parsing
-
-```julia
-read_pumas(filepath::String, args...; kwargs...)
-read_pumas(data, covariates=Symbol[], observations=Symbol[:dv];
-                 id=:id, time=:time, evid=:evid, amt=:amt, addl=:addl,
-                 ii=:ii, cmt=:cmt, rate=:rate, ss=:ss,
-                 event_data=true)
-```
-
-The arguments are as follows:
-
-- `data` is the tabular data source. If a string path to a CSV is given, then
-  it will read the CSV file from that location in the file system. If a Julia-based
-  tabular data structure is given, such as a
-  [DataFrame](http://juliadata.github.io/DataFrames.jl/stable/), then that
-  structure will be used as the data source.
-
-The other arguments are optional (keyword arguments) and allow changing the column names from their
-default.
 
 ### PumasNDF Checks
 The `read_pumas` function does some general checks on the provided data and informs the user about inconsistency in the data and throws an error in case of invalid data reporting row number and column name causing the problem so that the user can look and resolve the issue.
