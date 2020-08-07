@@ -283,15 +283,15 @@ Special notes:
 - All values and header names are interpreted as lower case.
 
 !!! tip
-  Given the information above, it is important to understand how to read a dataset using
-  the CSV.jl package. We recommend that all blanks (`""`), `.`'s, `NA`'s and any other character elements
-  in your dataset be passed to the `missingstrings` keyword argument when reading the file as below
+    Given the information above, it is important to understand how to read a dataset using
+    the CSV.jl package. We recommend that all blanks (`""`), `.`'s, `NA`'s and any other character elements
+    in your dataset be passed to the `missingstrings` keyword argument when reading the file as below
 
-  ```julia
-  using CSV
-  data = DataFrame!(CSV.File("./pathtomyfile/mydata.csv", missingstrings = ["", ".", "NA", "BQL"]))
-  ```
-  For more information check out the [CSV.jl documentation](https://juliadata.github.io/CSV.jl/stable/)
+```julia
+using CSV
+data = DataFrame!(CSV.File("./pathtomyfile/mydata.csv", missingstrings = ["", ".", "NA", "BQL"]))
+```
+For more information check out the [CSV.jl documentation](https://juliadata.github.io/CSV.jl/stable/)
 
 ### PumasNDF Checks
 The `read_pumas` function does some general checks on the provided data and informs the user about inconsistency in the data and throws an error in case of invalid data reporting the row number and column name causing the problem. This will allow the user to resolve the issue.
