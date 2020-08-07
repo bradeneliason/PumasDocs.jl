@@ -98,20 +98,6 @@ turnover_params = (tvcl = 1.5,
                    Ω_pd = Diagonal([0.05]),
                    σ_prop_pk = 0.02,
                    σ_add_pd = 0.2)
-
-
-
-
-simdf = DataFrame(sims)
-simdf[!, :cmt] .= 1
-simdf = simdf |>
-            @filter(!(_.dv==0 && _.evid==0)) |> DataFrame
-CSV.write("./data/nm_idr.csv", simdf)
-
-data = read_pumas(simdf, dvs=[:dv,:resp])
-
-@time res = fit(inf_2cmt_lin_turnover, data, turnover_params, Pumas.FOCEI())
-
 ```
 
 ```julia
@@ -323,7 +309,7 @@ using Plots
 plot(sim)
 ```
 
-![simple plot]("./assets/intro_pkpdsim_simple.png")
+![simple plot](./assets/intro_pkpdsim_simple.png)
 
 Note that we can use the [attributes from `Plots.jl`](http://docs.juliaplots.org/latest/attributes/) to further modify the plot. For example,
 
