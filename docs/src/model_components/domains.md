@@ -93,7 +93,7 @@ Instead of using a `Domain` type from Pumas, a `Distribution` can be used to
 specify a domain. For example,
 
 ```julia
-Ω ~ Normal(0,1)
+Ω ~ Normal(0.0, 1.0)
 ```
 
 is a valid domain specification. If this is done, then the probability
