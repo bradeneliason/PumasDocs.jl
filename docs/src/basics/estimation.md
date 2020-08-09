@@ -1,35 +1,24 @@
 # Estimating Parameters of Pumas Models
 
 Pumas can use the observational data of a `Subject` or `Population` to estimate
-the parameters of an NLME model. This is done by two classes of methods.
-Maximum likelihood methods find the parameters such that the observational
+the parameters in many types of models. This is done by two classes of methods.
+First, maximum likelihood methods find the parameters such that the observational
 data has the highest probability of occurring according to the chosen error
-distributions. Bayesian methods find a posterior probability distribution for
+distributions. Second, bayesian methods find a posterior probability distribution for
 the parameters to describe the chance that a parameter has a given value given
 the data. The following section describes how to fit an NLME model in Pumas
 via the two methods.
 
 ## Defining Data for Estimation
 
-Estimation is done by looking at the likelihood of likewise names. Thus, for
-example if `subject.observations` is a `NamedTuple` with names `dv` and
-`resp`, the likelihood calculation will be between values from `derived` named
-`dv` and `resp`. If `dv` is a scalar in the observation data, then `dv`
+The observed data should be parsed using the name names as those found in the
+model. For example, if `subject.observations` is a `NamedTuple` with names `dv` and
+`resp`, the `derived` block or function in the model should define distributions with matching names.
+If `dv` is a scalar in the observation data, then `dv`
 from `derived` should also be a scalar. Likewise, if `dv` is an array like
 a time series, then `dv` should be a size-matching time series when returned
-from `derived`. Note that likelihoods are calculated between the probability
-distribution from `derived` and the matching observation from
-`subject.observations`. If no likelihood is associated with a `derived` value,
-then the value has an implicit standard normal interpretation, which amounts
-to having the L2 Euclidian distance taken as the likelihood during fitting
-procedures.
-
-**Note: Currently only `BayesMCMC` and `LaplaceI` support multiple output series.
-all other likelihood approximations must have the derived and observation data
-under the name `dv`**
-
-**Note: Currently the estimation procedures require that there only exists a
-single random effect (vector), and this vector must be named η (\eta)**
+from `derived`. The likelihood of observing multiple dependent variables is 
+calculated under the assumtion of independence between the two.
 
 ## Maximum Likelihood Estimation
 
@@ -40,40 +29,50 @@ function's signature is:
 Distributions.fit(m::PumasModel,
                   data::Population,
                   param::NamedTuple,
-                  approx::LikelihoodApproximation,
-                  args...;
+                  approx::LikelihoodApproximation;
                   optimize_fn = DEFAULT_OPTIMIZE_FN,
-                  kwargs...)
+                  constantcoef::NamedTuple = NamedTuple(),
+                  omegas::Tuple = tuple(),
+                  ensemblealg::DiffEqBase.EnsembleAlgorithm = EnsembleSerial(),
+                  checkidentification=true,
+                  kwargs...))
 ```
 
-The arguments are:
+Fit the Pumas model `model` to the dataset `population` with starting values
+`param` using the estimation method `approx`. Currently supported values for
+the `approx` argument are `FO`, `FOCE`, `FOCEI`, `LaplaceI`, `TwoStage`,
+`NaivePooled`, and `BayesMCMC`. See the online documentation for more details
+about the different methods.
 
-- `m`: a `PumasModel`, either defined by the `@model` DSL or the function-based
-  interface.
-- `data`: a `Population`.
-- `param`: a named tuple of parameters. Used as the initial condition for the
-  optimizer.
-- `approx`: the marginal loglikelihood approximation to use for the maximum
-  likelihood procedure.
-- Extra `args` and `kwargs` are passed on to the internal `simobs` call and
-  thus control the behavior of the differential equation solvers.
-- `optimize_fn`: a function of two arguments `(cost,p)` where `cost` is the
-  cost function and `p` is the initial parameters as a vector. This function
-  defines the optimization routine that is used to find the maximum of the
-  likelihood. The default optimization function uses the
-  [Optim.jl](http://julianlsolvers.github.io/Optim.jl/stable/) library and is
-  defined as follows:
+The argument `optimize_fn` is used for optimizing the objective function
+for all `approx` methods except `BayesMCMC`. The default optimization function
+uses the quasi-Newton routine `BFGS` method from the `Optim` package.
+Optimization specific arguments can be passed to `DefaultOptimizeFN`, e.g. the
+optimization trace can be disabled by passing
+`DefaultOptimizeFN(show_trace=false)`. See `Optim` for more defails.
 
-```julia
-function DEFAULT_OPTIMIZE_FN(cost,p)
-  Optim.optimize(cost,p,BFGS(linesearch=Optim.LineSearches.BackTracking()),
-                 Optim.Options(show_trace=verbose, # Print progress
-                               store_trace=true,
-                               extended_trace=true,
-                               g_tol=1e-3),
-                  autodiff=:finite)
-end
-```
+It is possible to fix one or more parameters of the fit by passing a
+`NamedTuple` as the `constantcoef` argument with keys and values corresponding
+to the names and values of the fixed parameters, e.g. `constantcoef=(σ=0.1,)`.
+
+When models include an `@random` block and fitting with `NaivePooled` is
+requested, it is required that the user supplies the names of the parameters
+of the random effects as the `omegas` argument such that these can be ignored
+in the optimization, e.g. `omegas=(Ω,)`.
+
+Parallelization of the optimization is supported for most estimation methods
+via the ensemble interface of DifferentialEquations.jl. The default is
+`EnsembleSerial()`. Currently, the only supported parallelization for
+model fitting is `EnsembleThreads()`.
+
+The `fit` function will check if any gradients and throw an exception if any
+of the elements are exactly zero unless `checkidentification` is set to `false`.
+
+Further keyword arguments can be passed via the `kwargs...` argument. This
+allows for passing arguments to the differential equations solver such as
+`alg`, `abstol`, and `reltol`. The default values for these are
+`AutoVern7(Rodas5())`, `1e-12`, and `1e-8` respectively. See the
+DifferentialEquations.jl documentation for more details.
 
 The return type of `fit` is a `FittedPumasModel`.
 
@@ -82,10 +81,8 @@ The return type of `fit` is a `FittedPumasModel`.
 The following choices are available for the likelihood approximations:
 
 - `FO()`: first order approximation.
-- `FOI()`: first order approximation with interaction. Not complete.
 - `FOCE()`: first order conditional estimation.
 - `FOCEI()`: first order conditional estimation with interaction.
-- `Laplace()`: second order Laplace approximation
 - `LaplaceI()`: second order Laplace approximation with interaction.
 
 ### FittedPumasModel
@@ -94,27 +91,9 @@ The relevant fields of a `FittedPumasModel` are:
 
 - `model`: the `model` used in the estimation process.
 - `data`: the `Population` that was estimated.
+- `optim`: the result returned by the optimizer
 - `approx`: the marginal likelihood approximation that was used.
 - `param`: the optimal parameters.
-
-Additionally, the following functions help interpret the fit:
-
-- `vcov(fpm)` returns the covariance matrix between the population parameters
-  for the `FittedPumasModel`
-- `stderror(fpm)` returns the standard errors for the population parameters
-  for the `FittedPumasModel`
-
-Additionally the function:
-
-```julia
-predict(fpm::FittedPumasModel, approx=fpm.approx;
-        nsim=nothing, timegrid=false, newdata=false, useEBEs=true)
-```
-
-Returns a `FittedPumasPrediction` which contains the solution of all population
-diagnostics in the field `population` and all individual diagnostics in the
-field `individual`. For more information on the diagnostics, please see the
-[Simulation and Estimation Diagnostics](@ref)
 
 ## Bayesian Estimation
 
