@@ -126,7 +126,8 @@ Distributions.fit(
 
 !!! info
     
-    We use a `NUTS` with the generalised no-U-turn termination criterion and multinomial sampling on Hamiltonian system 
+    We use a `NUTS` sampler with the generalized no-U-turn termination criterion and multinomial sampling on Hamiltonian system 
+
     whose kinetic energy is specified with a diagonal metric (diagonal matrix with positive diagonal entries).
     For numerical intergation of the Hamiltonian system, we use the ordinary leapfrog integrator. The adaptation is done 
 
