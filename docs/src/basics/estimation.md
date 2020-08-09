@@ -15,8 +15,11 @@ via the two methods.
 
     - Bayesian methods find a posterior probability distribution for
     the parameters to describe the chance that a parameter has a given value given
-    the data. The following section describes how to fit an NLME model in Pumas
+    the data.
+    
+    The following section describes how to fit a NLME model in Pumas
     via the two methods.
+
 
 ## Defining Data for Estimation
 
