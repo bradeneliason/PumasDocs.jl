@@ -4,7 +4,7 @@ Pumas allows you to generate VPC quantiles for your data and model simulations
 and utilize the Julia plotting capabilities to generate the relevant VPC plots.
 This is allowed with the `vpc` function discussed below that returns a `VPC` object.
 We generate the VPCs with the non-parameteric quantile regression approach discussed
-in the [paper](https://ascpt.onlinelibrary.wiley.com/doi/pdf/10.1002/psp4.12319) by _Jamesen et al._
+in the [_Jamsen et al._](https://ascpt.onlinelibrary.wiley.com/doi/pdf/10.1002/psp4.12319)
 
 ```julia
  vpc(fpm::FittedPumasModel,
