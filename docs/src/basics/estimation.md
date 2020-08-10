@@ -9,6 +9,18 @@ the parameters to describe the chance that a parameter has a given value given
 the data. The following section describes how to fit an NLME model in Pumas
 via the two methods.
 
+    - Maximum likelihood methods find the parameters such that the observational
+    data has the highest probability of occurring according to the chosen error
+    distributions. 
+
+    - Bayesian methods find a posterior probability distribution for
+    the parameters to describe the chance that a parameter has a given value given
+    the data.
+    
+The following sections describe how to fit a NLME model in Pumas
+via the two methods.
+
+
 ## Defining Data for Estimation
 
 The observed data should be parsed using the name names as those found in the
@@ -26,7 +38,7 @@ Maximum Likelihood Estimation (MLE) is performed using the `fit` function. This
 function's signature is:
 
 ```julia
-Distributions.fit(m::PumasModel,
+Distributions.fit(model::PumasModel,
                   data::Population,
                   param::NamedTuple,
                   approx::LikelihoodApproximation;
@@ -100,26 +112,48 @@ The relevant fields of a `FittedPumasModel` are:
 Bayesian parameter estimation is performed by using the `fit` function as follows:
 
 ```julia
-fit(model::PumasModel, data::Population, ::BayesMCMC,
-                       args...; nsamples=5000, kwargs...)
+Distributions.fit(
+    model::PumasModel,
+    data::Population,
+    param::NamedTuple,
+    ::BayesMCMC;
+    nadapts::Integer=2000,
+    nsamples::Integer=10000,
+    progress = Base.is_interactive,
+    kwargs...
+ )
 ```
 
+!!! info
+    
+    We use a `NUTS` sampler with the generalized no-U-turn termination criterion and multinomial sampling on Hamiltonian system 
+
+    whose kinetic energy is specified with a diagonal metric (diagonal matrix with positive diagonal entries).
+    For numerical intergation of the Hamiltonian system, we use the ordinary leapfrog integrator. The adaptation is done 
+
+    using the Stan’s windowed adaptation routine with a target acceptance ratio of `0.8`.
+  
 The arguments are:
 
-- `m`: a `PumasModel`, either defined by the `@model` DSL or the function-based
+- `model`: a `PumasModel`, either defined by the `@model` DSL or the function-based
   interface.
 - `data`: a `Population`.
+- `param`: a named tuple of parameters. Used as the initial condition for the
+  sampler.
 - The `approx` must be `BayesMCMC()`.
 - `nsamples` determines the number of samples taken along each chain.
 - Extra `args` and `kwargs` are passed on to the internal `simobs` call and
   thus control the behavior of the differential equation solvers.
 
-The result is a `BayesMCMCResults` type. Notice that initial parameter values
-are not utilized in Bayesian estimation.
+The result is a `BayesMCMCResults` type.
 
 ### BayesMCMCResults
 
 The MCMC chain is stored in the `chain` field of the returned `BayesMCMCResults`.
+Additionally the result can be converted into a `Chains` object from MCMCChains.jl,
+allowing utlilization of diagnostics and visualization tooling. This is discussed further in
+the Bayesian Estimation tutorial. 
+
 The following functions help with querying common results on the Bayesian
 posterior:
 
