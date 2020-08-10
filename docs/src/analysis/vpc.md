@@ -19,7 +19,7 @@ in the [_Jamsen et al._](https://ascpt.onlinelibrary.wiley.com/doi/pdf/10.1002/p
                 bandwidth=2,
                 numstrats=stratify_by === nothing ? nothing : [4 for i in 1:length(stratify_by)])
 ```
-`vpc` computes the quantiles for VPC for a `FittedPumasModel` with simulated prediction intervals 
+`vpc` computes the quantiles for VPC for a `FittedPumasModel` with simulated confidence intervals 
 around the empirical quantiles based on `reps` simulated populations.
 
 The number of repetitions of simulation are passed in with the `reps` positional argument. 
@@ -27,7 +27,7 @@ The number of repetitions of simulation are passed in with the `reps` positional
 The following keyword arguments are supported:
 
     - `quantiles::NTuple{3,Float64}`: A three-tuple of the quantiles for which the quantiles will be computed. The default is `(0.1, 0.5, 0.9)` which computes the 10th, 50th and 90th percentile.
-    - `level::Real`: Probability level to use for the simulated prediction intervals. The default is `0.95`.
+    - `level::Real`: Probability level to use for the simulated confidence intervals around each of the quantiles. The default is `0.95`.
     - `dv::Symbol`: The name of the dependent variable to use for the VPCs, passed in as a `Symbol`. The default is the first dependent variable in the dataset.
     - `stratify_by`: The covariates to be used for stratification. Takes an array of the `Symbol`s of the stratification covariates.
     - `ensemblealg`: This is passed to the `simobs` call while the `reps` simulations. For more description check the docs for `simobs`.
@@ -71,10 +71,10 @@ export it using CSV.jl to your disk.
 While plotting the obtained `VPC` object with `plot` the following keyword arguments allow the option 
 to include or exclude various components with `true` or `false` respectively:
 
-    - `observations`: Scatter plot of the true observations.
+    - `observations`: Scatter plot of the real observations.
     - `simquantile_medians`: The median quantile regression of each quantile from the simulations.
-    - `observed_quantiles`: The quantile regressions for the true observations.
-    - `ci_bands`: Shaded region between the upper and lower confidence levels of each quantile from the simulations.
+    - `observed_quantiles`: The quantile regressions for the real observations.
+    - `ci_bands`: Shaded region between the upper and lower confidence bounds of each quantile from the simulations.
 
 
 !!! info
