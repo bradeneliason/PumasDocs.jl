@@ -182,7 +182,7 @@ for VPC of the fitted model, stratified on `wt`.
 
 ```julia
  vpc_fpm_stratwt = vpc(res, 100, stratify_by=[:wt], bandwidth = 5)
- plot(vpc_fpm_stratwt)
+ plot(vpc_fpm_stratwt, legend=false)
 ```
 ![WT VPC](../assets/vpc/vpcstratwt.png)
 
@@ -192,6 +192,12 @@ Let's pass in the time grid with the `sim_idvs` kwarg to `vpc` for the simulatio
  plot(vpc_fpm)
 ```
 ![sim idv](../assets/vpc/simidvs.png)
+
+By specifying the plot and the path the VPC plot can be saved to the disk as below:
+```julia
+ p = plot(vpc_fpm)
+ savefig(p, "simidvsvpc.png")
+```
 
 !!! note
 
