@@ -17,8 +17,8 @@ via the two methods.
     the parameters to describe the chance that a parameter has a given value given
     the data.
     
-    The following section describes how to fit a NLME model in Pumas
-    via the two methods.
+The following sections describe how to fit a NLME model in Pumas
+via the two methods.
 
 
 ## Defining Data for Estimation
