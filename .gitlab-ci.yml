@@ -46,8 +46,12 @@ pages:
   stage: deploy
   script:
     - mv docs/build public
+    - mv CNAME public/
   artifacts:
     paths:
     - public
   only:
-    - master
+  - master
+  - tags
+  - external
+  - pushes
