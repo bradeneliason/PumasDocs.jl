@@ -94,52 +94,52 @@ to include or exclude various components with `true` or `false` respectively:
 Let's take a look at a complete example, first we define the model and generate round-trip data.
 
 ```julia
- model = @model begin
-            @param begin
-              tvcl ∈ RealDomain(lower=0)
-              tvv ∈ RealDomain(lower=0)
-              pmoncl ∈ RealDomain(lower = -0.99)
-              Ω ∈ PDiagDomain(2)
-              σ_prop ∈ RealDomain(lower=0)
-            end
+model = @model begin
+  @param begin
+    tvcl ∈ RealDomain(lower=0)
+    tvv ∈ RealDomain(lower=0)
+    pmoncl ∈ RealDomain(lower = -0.99)
+    Ω ∈ PDiagDomain(2)
+    σ_prop ∈ RealDomain(lower=0)
+  end 
 
-            @random begin
-              η ~ MvNormal(Ω)
-            end
+  @random begin
+    η ~ MvNormal(Ω)
+  end 
 
-            @covariates wt isPM
+  @covariates wt isPM 
 
-            @pre begin
-              CL = tvcl * (1 + pmoncl*isPM) * (wt/70)^0.75 * exp(η[1])
-              Vc    = tvv * (wt/70) * exp(η[2])
-            end
+  @pre begin
+    CL = tvcl * (1 + pmoncl*isPM) * (wt/70)^0.75 * exp(η[1])
+    Vc    = tvv * (wt/70) * exp(η[2])
+  end 
 
-            @dynamics Central1
+  @dynamics Central1  
 
-            @derived begin
-              cp = @. 1000*(Central / Vc)
-              dv ~ @. Normal(cp, sqrt(cp^2*σ_prop))
-            end
-        end
+  @derived begin
+    cp = @. 1000*(Central / Vc)
+    dv ~ @. Normal(cp, sqrt(cp^2*σ_prop))
+  end
+end
 
- ev = DosageRegimen(100, time=0, addl=2, ii=24)
- s1 = Subject(id=1, events=ev, covariates=(isPM=1, wt=70))
+ev = DosageRegimen(100, time=0, addl=2, ii=24)
+s1 = Subject(id=1, events=ev, covariates=(isPM=1, wt=70))
 
- param = (
-     tvcl = 4.0,
-     tvv    = 70,
-     pmoncl = -0.7,
-     Ω = Diagonal([0.09,0.09]),
-     σ_prop = 0.04
-     )
+param = (
+    tvcl = 4.0,
+    tvv    = 70,
+    pmoncl = -0.7,
+    Ω = Diagonal([0.09,0.09]),
+    σ_prop = 0.04
+    )
 
- choose_covariates() = (isPM = rand([1, 0]),
- wt = rand(55:80))
- pop_with_covariates = Population(map(i -> Subject(id=i, events=ev, covariates=choose_covariates()),1:10))
- obs = simobs(model, pop_with_covariates, param, obstimes=0:1:60)
- simdf = DataFrame(obs)
- simdf[rand(1:length(simdf.dv), 5), :dv] .= missing
- data = read_pumas(simdf, time=:time, covariates=[:isPM, :wt])
+choose_covariates() = (isPM = rand([1, 0]),
+wt = rand(55:80))
+pop_with_covariates = Population(map(i -> Subject(id=i, events=ev, covariates=choose_covariates()),1:10))
+obs = simobs(model, pop_with_covariates, param, obstimes=0:1:60)
+simdf = DataFrame(obs)
+simdf[rand(1:length(simdf.dv), 5), :dv] .= missing
+data = read_pumas(simdf, time=:time, covariates=[:isPM, :wt])
 ```
 
 One workflow tip we recommend is to use the ability of doing the quantile calculations 
@@ -147,20 +147,18 @@ only for the observed data for adjusting the `bandwidth` value (defaults to 2) t
 good fit.
 
 ```julia
- vpc_data = vpc(data)
- plot(vpc_data)
+vpc_data = vpc(data)
+plot(vpc_data)
 ```
 ![Data VPC](../assets/vpc/vpcdata.png)
 
-```julia
- vpc_data_stratwt = vpc(data, stratify_by=[:wt])
- plot(vpc_data_stratwt)
+```juliavpc_data_stratwt = vpc(data, stratify_by=[:wt])plot(vpc_data_stratwt)
 ```
 ![Bandwidth 2](../assets/vpc/bandwidth2.png)
 
 ```julia
- vpc_data_stratwt = vpc(data, stratify_by=[:wt], bandwidth = 5)
- plot(vpc_data_stratwt)
+vpc_data_stratwt = vpc(data, stratify_by=[:wt], bandwidth = 5)
+plot(vpc_data_stratwt)
 ```
 ![Bandwidth 5](../assets/vpc/bandwidth5.png)
 
@@ -173,30 +171,30 @@ for VPC of the fitted model, stratified on `wt`.
     fix it in most cases.
 
 ```julia
- res = fit(model,data,param,Pumas.FOCEI())
+res = fit(model,data,param,Pumas.FOCEI())
 
- vpc_fpm = vpc(res, 100)
- plot(vpc_fpm)
+vpc_fpm = vpc(res, 100)
+plot(vpc_fpm)
 ```
 ![FPM VPC](../assets/vpc/vpcfpm.png)
 
 ```julia
- vpc_fpm_stratwt = vpc(res, 100, stratify_by=[:wt], bandwidth = 5)
- plot(vpc_fpm_stratwt, legend=false)
+vpc_fpm_stratwt = vpc(res, 100, stratify_by=[:wt], bandwidth = 5)
+plot(vpc_fpm_stratwt, legend=false)
 ```
 ![WT VPC](../assets/vpc/vpcstratwt.png)
 
 Let's pass in the time grid with the `sim_idvs` kwarg to `vpc` for the simulation time points.
 ```julia
- vpc_fpm = vpc(res, 100, sim_idvs = 0.0:5:60.0)
- plot(vpc_fpm)
+vpc_fpm = vpc(res, 100, sim_idvs = 0.0:5:60.0)
+plot(vpc_fpm)
 ```
 ![sim idv](../assets/vpc/simidvs.png)
 
 By specifying the plot and the path the VPC plot can be saved to the disk as below:
 ```julia
- p = plot(vpc_fpm)
- savefig(p, "simidvsvpc.png")
+p = plot(vpc_fpm)
+savefig(p, "simidvsvpc.png")
 ```
 
 !!! note
