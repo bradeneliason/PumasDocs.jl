@@ -102,7 +102,7 @@ turnover_params = (tvcl = 1.5,
 
 ```julia
 regimen = DosageRegimen(150, rate = 10, cmt = 1)
-pop = Population(map(i -> Subject(id = i,events = ev1), 1:10))
+pop = Population(map(i -> Subject(id = i,events = regimen), 1:10))
 ```
 
 ```julia
